@@ -1,0 +1,507 @@
+scalar DateTime
+scalar Decimal
+scalar JSON
+
+# Enums
+enum AssetStatus {
+  ASSIGNED
+  IN_MAINTENANCE
+  AVAILABLE
+  RETIRED
+  LOST
+}
+
+enum HolderRole {
+  EMPLOYEE
+  MANAGER
+  ADMIN
+  DEPARTMENT
+}
+
+enum DeliveryStatus {
+  PENDING
+  IN_TRANSIT
+  DELIVERED
+  FAILED
+  RETURNED
+}
+
+enum AssignmentStatus {
+  ACTIVE
+  RETURNED
+  EXPIRED
+}
+
+enum ReturnStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  COMPLETED
+  CANCELLED
+}
+
+enum IntegrationStatus {
+  ACTIVE
+  INACTIVE
+  ERROR
+}
+
+enum ProductStatus {
+  AVAILABLE
+  OUT_OF_STOCK
+  DISCONTINUED
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  SHIPPED
+  DELIVERED
+  CANCELLED
+  RETURNED
+}
+
+# Core Types
+type Asset {
+  assetId: ID!
+  type: String!
+  model: String!
+  serialNumber: String!
+  barcode: String
+  status: AssetStatus!
+  location: String!
+  purchaseDate: DateTime!
+  warrantyExpiry: DateTime
+  ownerHolderId: String
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  
+  # Relations
+  owner: AssetHolder
+  assignments: [Assignment!]!
+  shipments: [Shipment!]!
+  maintenances: [Maintenance!]!
+  returnRequests: [ReturnRequest!]!
+}
+
+type AssetHolder {
+  holderId: ID!
+  name: String!
+  department: String!
+  email: String!
+  location: String!
+  role: HolderRole!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  
+  # Relations
+  ownedAssets: [Asset!]!
+  assignments: [Assignment!]!
+  shipments: [Shipment!]!
+  returnRequests: [ReturnRequest!]!
+}
+
+type Shipment {
+  shipmentId: ID!
+  assetId: String!
+  holderId: String!
+  shipmentDate: DateTime!
+  deliveryStatus: DeliveryStatus!
+  carrier: String!
+  trackingNumber: String
+  courierApiResponse: JSON
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  
+  # Relations
+  asset: Asset!
+  holder: AssetHolder!
+}
+
+type Assignment {
+  assignmentId: ID!
+  assetId: String!
+  holderId: String!
+  assignedDate: DateTime!
+  returnDate: DateTime
+  status: AssignmentStatus!
+  acknowledgment: Boolean!
+  chainOfCustodyDoc: String
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  
+  # Relations
+  asset: Asset!
+  holder: AssetHolder!
+}
+
+type Maintenance {
+  maintenanceId: ID!
+  assetId: String!
+  maintenanceDate: DateTime!
+  issueReported: String!
+  resolution: String
+  warrantyCovered: Boolean!
+  reminderScheduled: DateTime
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  
+  # Relations
+  asset: Asset!
+}
+
+type ReturnRequest {
+  returnId: ID!
+  holderId: String
+  customerId: String
+  assetId: String
+  orderId: String
+  requestDate: DateTime!
+  returnStatus: ReturnStatus!
+  prepaidLabelGenerated: Boolean!
+  finalStatusConfirmed: Boolean!
+  reason: String
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  
+  # Relations
+  holder: AssetHolder
+  customer: Customer
+  asset: Asset
+  order: Order
+}
+
+type AnalyticsReport {
+  reportId: ID!
+  generatedDate: DateTime!
+  reportType: String!
+  details: JSON!
+  lostOrDamagedAssets: JSON
+  complianceFlag: Boolean!
+  createdAt: DateTime!
+}
+
+type ApiIntegration {
+  integrationId: ID!
+  systemName: String!
+  apiType: String!
+  endpointUrl: String!
+  status: IntegrationStatus!
+  lastSyncTime: DateTime
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+type Customer {
+  customerId: ID!
+  name: String!
+  email: String!
+  phone: String
+  address: String!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  
+  # Relations
+  orders: [Order!]!
+  returnRequests: [ReturnRequest!]!
+}
+
+type Product {
+  productId: ID!
+  name: String!
+  description: String
+  category: String!
+  price: Decimal!
+  status: ProductStatus!
+  stockQuantity: Int!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  
+  # Relations
+  orderItems: [OrderItem!]!
+}
+
+type Order {
+  orderId: ID!
+  customerId: String!
+  orderDate: DateTime!
+  orderStatus: OrderStatus!
+  totalAmount: Decimal!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  
+  # Relations
+  customer: Customer!
+  orderItems: [OrderItem!]!
+  returnRequests: [ReturnRequest!]!
+}
+
+type OrderItem {
+  orderItemId: ID!
+  orderId: String!
+  productId: String!
+  quantity: Int!
+  price: Decimal!
+  createdAt: DateTime!
+  
+  # Relations
+  order: Order!
+  product: Product!
+}
+
+# Input Types for Mutations
+input CreateAssetInput {
+  type: String!
+  model: String!
+  serialNumber: String!
+  barcode: String
+  status: AssetStatus = AVAILABLE
+  location: String!
+  purchaseDate: DateTime!
+  warrantyExpiry: DateTime
+  ownerHolderId: String
+}
+
+input UpdateAssetInput {
+  type: String
+  model: String
+  serialNumber: String
+  barcode: String
+  status: AssetStatus
+  location: String
+  purchaseDate: DateTime
+  warrantyExpiry: DateTime
+  ownerHolderId: String
+}
+
+input CreateAssetHolderInput {
+  name: String!
+  department: String!
+  email: String!
+  location: String!
+  role: HolderRole = EMPLOYEE
+}
+
+input UpdateAssetHolderInput {
+  name: String
+  department: String
+  email: String
+  location: String
+  role: HolderRole
+}
+
+input CreateShipmentInput {
+  assetId: String!
+  holderId: String!
+  shipmentDate: DateTime!
+  deliveryStatus: DeliveryStatus = IN_TRANSIT
+  carrier: String!
+  trackingNumber: String
+  courierApiResponse: JSON
+}
+
+input CreateAssignmentInput {
+  assetId: String!
+  holderId: String!
+  assignedDate: DateTime!
+  returnDate: DateTime
+  status: AssignmentStatus = ACTIVE
+  acknowledgment: Boolean = false
+  chainOfCustodyDoc: String
+}
+
+input CreateMaintenanceInput {
+  assetId: String!
+  maintenanceDate: DateTime!
+  issueReported: String!
+  resolution: String
+  warrantyCovered: Boolean = false
+  reminderScheduled: DateTime
+}
+
+input CreateReturnRequestInput {
+  holderId: String
+  customerId: String
+  assetId: String
+  orderId: String
+  requestDate: DateTime!
+  returnStatus: ReturnStatus = PENDING
+  prepaidLabelGenerated: Boolean = false
+  finalStatusConfirmed: Boolean = false
+  reason: String
+}
+
+input CreateCustomerInput {
+  name: String!
+  email: String!
+  phone: String
+  address: String!
+}
+
+input CreateProductInput {
+  name: String!
+  description: String
+  category: String!
+  price: Decimal!
+  status: ProductStatus = AVAILABLE
+  stockQuantity: Int = 0
+}
+
+input CreateOrderInput {
+  customerId: String!
+  orderDate: DateTime!
+  orderStatus: OrderStatus = PENDING
+  totalAmount: Decimal!
+  orderItems: [CreateOrderItemInput!]!
+}
+
+input CreateOrderItemInput {
+  productId: String!
+  quantity: Int!
+  price: Decimal!
+}
+
+# Filter and Sorting Inputs
+input AssetFilter {
+  type: String
+  status: AssetStatus
+  location: String
+  ownerHolderId: String
+}
+
+input AssetHolderFilter {
+  department: String
+  role: HolderRole
+  location: String
+}
+
+input OrderFilter {
+  customerId: String
+  orderStatus: OrderStatus
+  dateFrom: DateTime
+  dateTo: DateTime
+}
+
+enum SortOrder {
+  ASC
+  DESC
+}
+
+input AssetSort {
+  field: AssetSortField!
+  order: SortOrder = ASC
+}
+
+enum AssetSortField {
+  PURCHASE_DATE
+  CREATED_AT
+  UPDATED_AT
+  TYPE
+  STATUS
+}
+
+# Query Root Type
+type Query {
+  # Asset queries
+  asset(assetId: ID!): Asset
+  assets(filter: AssetFilter, sort: AssetSort, limit: Int, offset: Int): [Asset!]!
+  
+  # AssetHolder queries
+  assetHolder(holderId: ID!): AssetHolder
+  assetHolders(filter: AssetHolderFilter, limit: Int, offset: Int): [AssetHolder!]!
+  
+  # Assignment queries
+  assignment(assignmentId: ID!): Assignment
+  assignments(assetId: String, holderId: String, status: AssignmentStatus): [Assignment!]!
+  
+  # Maintenance queries
+  maintenance(maintenanceId: ID!): Maintenance
+  maintenances(assetId: String, dateFrom: DateTime, dateTo: DateTime): [Maintenance!]!
+  
+  # Shipment queries
+  shipment(shipmentId: ID!): Shipment
+  shipments(assetId: String, holderId: String, status: DeliveryStatus): [Shipment!]!
+  
+  # Return Request queries
+  returnRequest(returnId: ID!): ReturnRequest
+  returnRequests(holderId: String, customerId: String, status: ReturnStatus): [ReturnRequest!]!
+  
+  # Customer queries
+  customer(customerId: ID!): Customer
+  customers(limit: Int, offset: Int): [Customer!]!
+  
+  # Product queries
+  product(productId: ID!): Product
+  products(category: String, status: ProductStatus, limit: Int, offset: Int): [Product!]!
+  
+  # Order queries
+  order(orderId: ID!): Order
+  orders(filter: OrderFilter, limit: Int, offset: Int): [Order!]!
+  
+  # Analytics queries
+  analyticsReport(reportId: ID!): AnalyticsReport
+  analyticsReports(reportType: String, dateFrom: DateTime, dateTo: DateTime): [AnalyticsReport!]!
+  
+  # API Integration queries
+  apiIntegration(integrationId: ID!): ApiIntegration
+  apiIntegrations(status: IntegrationStatus): [ApiIntegration!]!
+}
+
+# Mutation Root Type
+type Mutation {
+  # Asset mutations
+  createAsset(input: CreateAssetInput!): Asset!
+  updateAsset(assetId: ID!, input: UpdateAssetInput!): Asset!
+  deleteAsset(assetId: ID!): Boolean!
+  
+  # AssetHolder mutations
+  createAssetHolder(input: CreateAssetHolderInput!): AssetHolder!
+  updateAssetHolder(holderId: ID!, input: UpdateAssetHolderInput!): AssetHolder!
+  deleteAssetHolder(holderId: ID!): Boolean!
+  
+  # Assignment mutations
+  createAssignment(input: CreateAssignmentInput!): Assignment!
+  updateAssignmentStatus(assignmentId: ID!, status: AssignmentStatus!): Assignment!
+  acknowledgeAssignment(assignmentId: ID!): Assignment!
+  
+  # Maintenance mutations
+  createMaintenance(input: CreateMaintenanceInput!): Maintenance!
+  updateMaintenanceResolution(maintenanceId: ID!, resolution: String!): Maintenance!
+  
+  # Shipment mutations
+  createShipment(input: CreateShipmentInput!): Shipment!
+  updateShipmentStatus(shipmentId: ID!, status: DeliveryStatus!): Shipment!
+  updateTrackingNumber(shipmentId: ID!, trackingNumber: String!): Shipment!
+  
+  # Return Request mutations
+  createReturnRequest(input: CreateReturnRequestInput!): ReturnRequest!
+  updateReturnRequestStatus(returnId: ID!, status: ReturnStatus!): ReturnRequest!
+  generatePrepaidLabel(returnId: ID!): ReturnRequest!
+  
+  # Customer mutations
+  createCustomer(input: CreateCustomerInput!): Customer!
+  updateCustomer(customerId: ID!, input: CreateCustomerInput!): Customer!
+  deleteCustomer(customerId: ID!): Boolean!
+  
+  # Product mutations
+  createProduct(input: CreateProductInput!): Product!
+  updateProduct(productId: ID!, input: CreateProductInput!): Product!
+  updateProductStock(productId: ID!, quantity: Int!): Product!
+  deleteProduct(productId: ID!): Boolean!
+  
+  # Order mutations
+  createOrder(input: CreateOrderInput!): Order!
+  updateOrderStatus(orderId: ID!, status: OrderStatus!): Order!
+  cancelOrder(orderId: ID!): Order!
+  
+  # Analytics mutations
+  generateAnalyticsReport(reportType: String!, details: JSON!): AnalyticsReport!
+}
+
+# Subscription Root Type (optional - for real-time updates)
+type Subscription {
+  assetStatusChanged(assetId: ID): Asset!
+  shipmentStatusChanged(shipmentId: ID): Shipment!
+  orderStatusChanged(orderId: ID): Order!
+  returnRequestStatusChanged(returnId: ID): ReturnRequest!
+}
