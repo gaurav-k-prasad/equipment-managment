@@ -1,5 +1,11 @@
 import { GraphQLResolveInfo } from "graphql";
-import { PrismaClient } from "@prisma/client";
+import {
+  PrismaClient,
+  AssignmentStatus,
+  DeliveryStatus,
+  ReturnStatus,
+  OrderStatus,
+} from "@prisma/client";
 
 const prisma = new PrismaClient();
 
@@ -346,11 +352,14 @@ const resolvers = {
 
     updateAssignmentStatus: async (
       _: any,
-      { assignmentId, status }: { assignmentId: string; status: string }
+      {
+        assignmentId,
+        status,
+      }: { assignmentId: string; status: AssignmentStatus }
     ) => {
       return prisma.assignment.update({
         where: { assignmentId },
-        data: { status },
+        data: { status: status as AssignmentStatus },
         include: {
           asset: true,
           holder: true,
@@ -411,11 +420,11 @@ const resolvers = {
 
     updateShipmentStatus: async (
       _: any,
-      { shipmentId, status }: { shipmentId: string; status: string }
+      { shipmentId, status }: { shipmentId: string; status: DeliveryStatus }
     ) => {
       return prisma.shipment.update({
         where: { shipmentId },
-        data: { deliveryStatus: status },
+        data: { deliveryStatus: status as DeliveryStatus },
         include: {
           asset: true,
           holder: true,
@@ -455,11 +464,11 @@ const resolvers = {
 
     updateReturnRequestStatus: async (
       _: any,
-      { returnId, status }: { returnId: string; status: string }
+      { returnId, status }: { returnId: string; status: ReturnStatus }
     ) => {
       return prisma.returnRequest.update({
         where: { returnId },
-        data: { returnStatus: status },
+        data: { returnStatus: status as ReturnStatus },
         include: {
           holder: true,
           customer: true,
@@ -580,11 +589,11 @@ const resolvers = {
 
     updateOrderStatus: async (
       _: any,
-      { orderId, status }: { orderId: string; status: string }
+      { orderId, status }: { orderId: string; status: OrderStatus }
     ) => {
       return prisma.order.update({
         where: { orderId },
-        data: { orderStatus: status },
+        data: { orderStatus: status as OrderStatus },
         include: {
           customer: true,
           orderItems: true,
