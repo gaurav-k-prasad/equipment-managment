@@ -16,28 +16,30 @@
     "schema:format": "prisma format"
   },
   "dependencies": {
-    "@apollo/server": "^4.12.1",
+    "@apollo/server": "^4.12.2",
     "@as-integrations/next": "^3.2.0",
     "@graphql-tools/graphql-file-loader": "^8.0.20",
     "@graphql-tools/load": "^8.1.0",
-    "@prisma/client": "^5.0.0",
+    "@prisma/client": "^5.22.0",
     "graphql": "^16.11.0",
+    "graphql-scalars": "^1.24.2",
     "graphql-tag": "^2.12.6",
     "next": "15.3.3",
     "next-auth": "^5.0.0-beta.28",
+    "pg": "^8.16.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
     "@graphql-tools/schema": "^10.0.23",
-    "graphql-tag": "^2.12.6",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "15.3.3",
+    "graphql-tag": "^2.12.6",
     "tailwindcss": "^4",
     "typescript": "^5"
   },
