@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta http-equiv="Origin-Agent-Cluster" content="?0">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login & Register</title>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+</head>
+<body>
+    <div>
+        <button onclick="showLogin()">Login</button>
+        <button onclick="showRegister()">Register</button>
+        <button onclick="logout()" id="logoutBtn" style="display:none;">Logout</button>
+    </div>
+
+    <div id="message"></div>
+    <div id="userInfo" style="display:none;"></div>
+
+    <!-- Login Form -->
+    <div id="loginForm">
+        <h2>Login</h2>
+        <form onsubmit="handleLogin(event)">
+            <div>
+                <label>Email:</label>
+                <input type="email" name="email" required>
+            </div>
+            <div>
+                <label>Password:</label>
+                <input type="password" name="password" required>
+            </div>
+            <button type="submit">Login</button>
+        </form>
+        
+        <hr>
+        <div id="g_id_onload"
+             data-client_id="71506115980-1ri4srfapepjo570akhldaotngqgmuia.apps.googleusercontent.com"
+             data-callback="handleGoogleLogin">
+        </div>
+        <div class="g_id_signin" data-type="standard"></div>
+    </div>
+
+    <!-- Register Form -->
+    <div id="registerForm" style="display:none;">
+        <h2>Register</h2>
+        <form onsubmit="handleRegister(event)">
+            <div>
+                <label>Full Name:</label>
+                <input type="text" name="name" required>
+            </div>
+            <div>
+                <label>Email:</label>
+                <input type="email" name="email" required>
+            </div>
+            <div>
+                <label>Phone:</label>
+                <input type="tel" name="phone">
+            </div>
+            <div>
+                <label>Address:</label>
+                <textarea name="address" rows="3"></textarea>
+            </div>
+            <div>
+                <label>Password:</label>
+                <input type="password" name="password" required>
+            </div>
+            <button type="submit">Register</button>
+        </form>
+        
+        <hr>
+        <button onclick="handleGoogleRegister()">Register with Google</button>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
