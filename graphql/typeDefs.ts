@@ -1,10 +1,11 @@
-import { GraphQLFileLoader } from '@graphql-tools/graphql-file-loader';
-import { loadSchemaSync } from '@graphql-tools/load';
-import path from 'path';
+import { GraphQLFileLoader } from "@graphql-tools/graphql-file-loader";
+import { loadSchemaSync } from "@graphql-tools/load";
+import { GraphQLSchema } from "graphql";
+import path from "path";
 
-const schemaPath = path.join(process.cwd(), 'graphql/schema.graphql');
+const schemaPath = path.join(process.cwd(), "graphql/schema.graphql");
 
-const typeDefs = loadSchemaSync(schemaPath, {
+const typeDefs: GraphQLSchema = loadSchemaSync(schemaPath, {
   loaders: [new GraphQLFileLoader()],
 });
 
