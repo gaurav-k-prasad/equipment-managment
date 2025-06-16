@@ -42,9 +42,9 @@ const server = new ApolloServer({
 
 // Export Next.js handler for the graphql integration
 export const GET = startServerAndCreateNextHandler(server, {
-  context: async (req: NextRequest) => createContext({ req }),
+  context: async () => createContext(),
 });
 
 export const POST = startServerAndCreateNextHandler(server, {
-  context: async (req: NextRequest) => createContext({ req }),
+  context: async () => createContext(),
 });

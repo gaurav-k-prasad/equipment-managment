@@ -8,161 +8,149 @@ datasource db {
 }
 
 model Asset {
-  assetId         String   @id @default(cuid()) @map("asset_id")
-  type            String
-  model           String
-  serialNumber    String   @unique @map("serial_number")
-  barcode         String?  @unique
-  status          AssetStatus @default(AVAILABLE)
-  location        String
-  purchaseDate    DateTime @map("purchase_date")
-  warrantyExpiry  DateTime? @map("warranty_expiry")
-  ownerHolderId   String?  @map("owner_holder_id")
-  createdAt       DateTime @default(now()) @map("created_at")
-  updatedAt       DateTime @updatedAt @map("updated_at")
-
-  // Relations
-  owner           AssetHolder? @relation(fields: [ownerHolderId], references: [holderId], onDelete: SetNull)
-  assignments     Assignment[]
-  shipments       Shipment[]
-  maintenances    Maintenance[]
-  returnRequests  ReturnRequest[]
+  assetId        String          @id @default(cuid()) @map("asset_id")
+  type           String
+  model          String
+  serialNumber   String          @unique @map("serial_number")
+  barcode        String?         @unique
+  status         AssetStatus     @default(AVAILABLE)
+  location       String
+  purchaseDate   DateTime        @map("purchase_date")
+  warrantyExpiry DateTime?       @map("warranty_expiry")
+  ownerHolderId  String?         @map("owner_holder_id")
+  createdAt      DateTime        @default(now()) @map("created_at")
+  updatedAt      DateTime        @updatedAt @map("updated_at")
+  owner          AssetHolder?    @relation(fields: [ownerHolderId], references: [holderId])
+  assignments    Assignment[]
+  maintenances   Maintenance[]
+  returnRequests ReturnRequest[]
+  shipments      Shipment[]
 
   @@map("assets")
 }
 
 model AssetHolder {
-  holderId    String @id @default(cuid()) @map("holder_id")
-  name        String
-  department  String
-  email       String @unique
-  location    String
-  role        HolderRole @default(EMPLOYEE)
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
-
-  // Relations
-  ownedAssets     Asset[]
-  assignments     Assignment[]
-  shipments       Shipment[]
-  returnRequests  ReturnRequest[]
+  holderId       String          @id @default(cuid()) @map("holder_id")
+  name           String
+  department     String
+  email          String          @unique
+  location       String
+  role           HolderRole      @default(EMPLOYEE)
+  createdAt      DateTime        @default(now()) @map("created_at")
+  updatedAt      DateTime        @updatedAt @map("updated_at")
+  userId         String?         @unique @map("user_id")
+  user           User?           @relation("UserToAssetHolder", fields: [userId], references: [id])
+  ownedAssets    Asset[]
+  assignments    Assignment[]
+  returnRequests ReturnRequest[]
+  shipments      Shipment[]
 
   @@map("asset_holders")
 }
 
 model Shipment {
-  shipmentId         String @id @default(cuid()) @map("shipment_id")
-  assetId            String @map("asset_id")
-  holderId           String @map("holder_id")
-  shipmentDate       DateTime @map("shipment_date")
+  shipmentId         String         @id @default(cuid()) @map("shipment_id")
+  assetId            String         @map("asset_id")
+  holderId           String         @map("holder_id")
+  shipmentDate       DateTime       @map("shipment_date")
   deliveryStatus     DeliveryStatus @default(IN_TRANSIT) @map("delivery_status")
   carrier            String
-  trackingNumber     String? @map("tracking_number")
-  courierApiResponse Json? @map("courier_api_response")
-  createdAt          DateTime @default(now()) @map("created_at")
-  updatedAt          DateTime @updatedAt @map("updated_at")
-
-  // Relations
-  asset   Asset @relation(fields: [assetId], references: [assetId], onDelete: Cascade)
-  holder  AssetHolder @relation(fields: [holderId], references: [holderId], onDelete: Cascade)
+  trackingNumber     String?        @map("tracking_number")
+  courierApiResponse Json?          @map("courier_api_response")
+  createdAt          DateTime       @default(now()) @map("created_at")
+  updatedAt          DateTime       @updatedAt @map("updated_at")
+  asset              Asset          @relation(fields: [assetId], references: [assetId], onDelete: Cascade)
+  holder             AssetHolder    @relation(fields: [holderId], references: [holderId], onDelete: Cascade)
 
   @@map("shipments")
 }
 
 model Assignment {
-  assignmentId        String @id @default(cuid()) @map("assignment_id")
-  assetId             String @map("asset_id")
-  holderId            String @map("holder_id")
-  assignedDate        DateTime @map("assigned_date")
-  returnDate          DateTime? @map("return_date")
-  status              AssignmentStatus @default(ACTIVE)
-  acknowledgment      Boolean @default(false)
-  chainOfCustodyDoc   String? @map("chain_of_custody_doc")
-  createdAt           DateTime @default(now()) @map("created_at")
-  updatedAt           DateTime @updatedAt @map("updated_at")
-
-  // Relations
-  asset   Asset @relation(fields: [assetId], references: [assetId], onDelete: Cascade)
-  holder  AssetHolder @relation(fields: [holderId], references: [holderId], onDelete: Cascade)
+  assignmentId      String           @id @default(cuid()) @map("assignment_id")
+  assetId           String           @map("asset_id")
+  holderId          String           @map("holder_id")
+  assignedDate      DateTime         @map("assigned_date")
+  returnDate        DateTime?        @map("return_date")
+  status            AssignmentStatus @default(ACTIVE)
+  acknowledgment    Boolean          @default(false)
+  chainOfCustodyDoc String?          @map("chain_of_custody_doc")
+  createdAt         DateTime         @default(now()) @map("created_at")
+  updatedAt         DateTime         @updatedAt @map("updated_at")
+  asset             Asset            @relation(fields: [assetId], references: [assetId], onDelete: Cascade)
+  holder            AssetHolder      @relation(fields: [holderId], references: [holderId], onDelete: Cascade)
 
   @@map("assignments")
 }
 
 model Maintenance {
-  maintenanceId       String @id @default(cuid()) @map("maintenance_id")
-  assetId             String @map("asset_id")
-  maintenanceDate     DateTime @map("maintenance_date")
-  issueReported       String @map("issue_reported")
-  resolution          String?
-  warrantyCovered     Boolean @default(false) @map("warranty_covered")
-  reminderScheduled   DateTime? @map("reminder_scheduled")
-  createdAt           DateTime @default(now()) @map("created_at")
-  updatedAt           DateTime @updatedAt @map("updated_at")
-
-  // Relations
-  asset Asset @relation(fields: [assetId], references: [assetId], onDelete: Cascade)
+  maintenanceId     String    @id @default(cuid()) @map("maintenance_id")
+  assetId           String    @map("asset_id")
+  maintenanceDate   DateTime  @map("maintenance_date")
+  issueReported     String    @map("issue_reported")
+  resolution        String?
+  warrantyCovered   Boolean   @default(false) @map("warranty_covered")
+  reminderScheduled DateTime? @map("reminder_scheduled")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+  asset             Asset     @relation(fields: [assetId], references: [assetId], onDelete: Cascade)
 
   @@map("maintenances")
 }
 
 model ReturnRequest {
-  returnId              String @id @default(cuid()) @map("return_id")
-  holderId              String? @map("holder_id")
-  customerId            String? @map("customer_id")
-  assetId               String? @map("asset_id")
-  orderId               String? @map("order_id")
-  requestDate           DateTime @map("request_date")
+  returnId              String       @id @default(cuid()) @map("return_id")
+  holderId              String?      @map("holder_id")
+  customerId            String?      @map("customer_id")
+  assetId               String?      @map("asset_id")
+  orderId               String?      @map("order_id")
+  requestDate           DateTime     @map("request_date")
   returnStatus          ReturnStatus @default(PENDING) @map("return_status")
-  prepaidLabelGenerated Boolean @default(false) @map("prepaid_label_generated")
-  finalStatusConfirmed  Boolean @default(false) @map("final_status_confirmed")
+  prepaidLabelGenerated Boolean      @default(false) @map("prepaid_label_generated")
+  finalStatusConfirmed  Boolean      @default(false) @map("final_status_confirmed")
   reason                String?
-  createdAt             DateTime @default(now()) @map("created_at")
-  updatedAt             DateTime @updatedAt @map("updated_at")
-
-  // Relations
-  holder   AssetHolder? @relation(fields: [holderId], references: [holderId], onDelete: SetNull)
-  customer Customer? @relation(fields: [customerId], references: [customerId], onDelete: SetNull)
-  asset    Asset? @relation(fields: [assetId], references: [assetId], onDelete: SetNull)
-  order    Order? @relation(fields: [orderId], references: [orderId], onDelete: SetNull)
+  createdAt             DateTime     @default(now()) @map("created_at")
+  updatedAt             DateTime     @updatedAt @map("updated_at")
+  asset                 Asset?       @relation(fields: [assetId], references: [assetId])
+  customer              Customer?    @relation(fields: [customerId], references: [customerId])
+  holder                AssetHolder? @relation(fields: [holderId], references: [holderId])
+  order                 Order?       @relation(fields: [orderId], references: [orderId])
 
   @@map("return_requests")
 }
 
 model AnalyticsReport {
-  reportId              String @id @default(cuid()) @map("report_id")
-  generatedDate         DateTime @map("generated_date")
-  reportType            String @map("report_type")
-  details               Json
-  lostOrDamagedAssets   Json? @map("lost_or_damaged_assets")
-  complianceFlag        Boolean @default(true) @map("compliance_flag")
-  createdAt             DateTime @default(now()) @map("created_at")
+  reportId            String   @id @default(cuid()) @map("report_id")
+  generatedDate       DateTime @map("generated_date")
+  reportType          String   @map("report_type")
+  details             Json
+  lostOrDamagedAssets Json?    @map("lost_or_damaged_assets")
+  complianceFlag      Boolean  @default(true) @map("compliance_flag")
+  createdAt           DateTime @default(now()) @map("created_at")
 
   @@map("analytics_reports")
 }
 
 model ApiIntegration {
-  integrationId String @id @default(cuid()) @map("integration_id")
-  systemName    String @map("system_name")
-  apiType       String @map("api_type")
-  endpointUrl   String @map("endpoint_url")
+  integrationId String            @id @default(cuid()) @map("integration_id")
+  systemName    String            @map("system_name")
+  apiType       String            @map("api_type")
+  endpointUrl   String            @map("endpoint_url")
   status        IntegrationStatus @default(ACTIVE)
-  lastSyncTime  DateTime? @map("last_sync_time")
-  createdAt     DateTime @default(now()) @map("created_at")
-  updatedAt     DateTime @updatedAt @map("updated_at")
+  lastSyncTime  DateTime?         @map("last_sync_time")
+  createdAt     DateTime          @default(now()) @map("created_at")
+  updatedAt     DateTime          @updatedAt @map("updated_at")
 
   @@map("api_integrations")
 }
 
 model Customer {
-  customerId String @id @default(cuid()) @map("customer_id")
-  name       String
-  email      String @unique
-  phone      String?
-  address    String
-  createdAt  DateTime @default(now()) @map("created_at")
-  updatedAt  DateTime @updatedAt @map("updated_at")
-
-  // Relations
+  customerId     String          @id @default(cuid()) @map("customer_id")
+  name           String
+  email          String          @unique
+  phone          String?
+  address        String
+  createdAt      DateTime        @default(now()) @map("created_at")
+  updatedAt      DateTime        @updatedAt @map("updated_at")
   orders         Order[]
   returnRequests ReturnRequest[]
 
@@ -170,55 +158,103 @@ model Customer {
 }
 
 model Product {
-  productId     String @id @default(cuid()) @map("product_id")
+  productId     String        @id @default(cuid()) @map("product_id")
   name          String
   description   String?
   category      String
-  price         Decimal @db.Decimal(10, 2)
+  price         Decimal       @db.Decimal(10, 2)
   status        ProductStatus @default(AVAILABLE)
-  stockQuantity Int @default(0) @map("stock_quantity")
-  createdAt     DateTime @default(now()) @map("created_at")
-  updatedAt     DateTime @updatedAt @map("updated_at")
-
-  // Relations
-  orderItems OrderItem[]
+  stockQuantity Int           @default(0) @map("stock_quantity")
+  createdAt     DateTime      @default(now()) @map("created_at")
+  updatedAt     DateTime      @updatedAt @map("updated_at")
+  orderItems    OrderItem[]
 
   @@map("products")
 }
 
 model Order {
-  orderId       String @id @default(cuid()) @map("order_id")
-  customerId    String @map("customer_id")
-  orderDate     DateTime @map("order_date")
-  orderStatus   OrderStatus @default(PENDING) @map("order_status")
-  totalAmount   Decimal @db.Decimal(10, 2) @map("total_amount")
-  createdAt     DateTime @default(now()) @map("created_at")
-  updatedAt     DateTime @updatedAt @map("updated_at")
-
-  // Relations
-  customer       Customer @relation(fields: [customerId], references: [customerId], onDelete: Cascade)
+  orderId        String          @id @default(cuid()) @map("order_id")
+  customerId     String          @map("customer_id")
+  orderDate      DateTime        @map("order_date")
+  orderStatus    OrderStatus     @default(PENDING) @map("order_status")
+  totalAmount    Decimal         @map("total_amount") @db.Decimal(10, 2)
+  createdAt      DateTime        @default(now()) @map("created_at")
+  updatedAt      DateTime        @updatedAt @map("updated_at")
   orderItems     OrderItem[]
+  customer       Customer        @relation(fields: [customerId], references: [customerId], onDelete: Cascade)
   returnRequests ReturnRequest[]
 
   @@map("orders")
 }
 
 model OrderItem {
-  orderItemId String @id @default(cuid()) @map("order_item_id")
-  orderId     String @map("order_id")
-  productId   String @map("product_id")
+  orderItemId String   @id @default(cuid()) @map("order_item_id")
+  orderId     String   @map("order_id")
+  productId   String   @map("product_id")
   quantity    Int
-  price       Decimal @db.Decimal(10, 2)
+  price       Decimal  @db.Decimal(10, 2)
   createdAt   DateTime @default(now()) @map("created_at")
-
-  // Relations
-  order   Order @relation(fields: [orderId], references: [orderId], onDelete: Cascade)
-  product Product @relation(fields: [productId], references: [productId], onDelete: Cascade)
+  order       Order    @relation(fields: [orderId], references: [orderId], onDelete: Cascade)
+  product     Product  @relation(fields: [productId], references: [productId], onDelete: Cascade)
 
   @@map("order_items")
 }
 
-// Enums
+model User {
+  id            String       @id @default(cuid())
+  name          String?
+  email         String       @unique
+  emailVerified DateTime?
+  password      String?
+  image         String?
+  role          UserRole     @default(USER)
+  createdAt     DateTime     @default(now()) @map("created_at")
+  updatedAt     DateTime     @updatedAt @map("updated_at")
+  accounts      Account[]
+  assetHolder   AssetHolder? @relation("UserToAssetHolder")
+  sessions      Session[]
+
+  @@map("users")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String  @map("user_id")
+  type              String
+  provider          String
+  providerAccountId String  @map("provider_account_id")
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique @map("session_token")
+  userId       String   @map("user_id")
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
 enum AssetStatus {
   ASSIGNED
   IN_MAINTENANCE
@@ -275,4 +311,10 @@ enum OrderStatus {
   DELIVERED
   CANCELLED
   RETURNED
+}
+
+enum UserRole {
+  USER
+  ADMIN
+  SUPER_ADMIN
 }
