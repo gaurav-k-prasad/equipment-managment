@@ -1,8 +1,7 @@
-import { GraphQLSchema } from "graphql";
 import { ApolloServerPlugin } from "@apollo/server";
 import { Context } from "./context";
 
-export const loggingPlugin: ApolloServerPlugin = {
+export const loggingPlugin: ApolloServerPlugin<Context> = {
   async requestDidStart() {
     const startTime = Date.now();
 
@@ -25,20 +24,10 @@ export const loggingPlugin: ApolloServerPlugin = {
 
       async executionDidStart() {
         return {
-          willResolveField({
-            source,
-            args,
-            contextValue,
-            info,
-          }: {
-            source: any;
-            args: any;
-            contextValue: Context;
-            info: any;
-          }) {
+          willResolveField({ args, contextValue, info }) {
             const startTime = Date.now();
 
-            return (error, result) => {
+            return (error) => {
               const duration = Date.now() - startTime;
               const operation = info.operation.operation;
               const fieldName = info.fieldName;

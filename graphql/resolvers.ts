@@ -1,32 +1,88 @@
+<<<<<<< HEAD
 import { GraphQLResolveInfo } from "graphql";
 import {
   PrismaClient,
+=======
+import {
+  PrismaClient,
+  AssetStatus,
+  HolderRole,
+>>>>>>> experimental
   AssignmentStatus,
   DeliveryStatus,
   ReturnStatus,
   OrderStatus,
+<<<<<<< HEAD
 } from "@prisma/client";
+=======
+  ProductStatus,
+} from "@prisma/client";
+import { withErrorHandling, GraphQLError } from "./utils";
+>>>>>>> experimental
 
 const prisma = new PrismaClient();
+
+interface AssetFilter {
+  type?: string;
+  status?: AssetStatus;
+  location?: string;
+  ownerHolderId?: string;
+}
+
+interface AssetSort {
+  field: string;
+  order: string;
+}
+
+interface AssetHolderFilter {
+  department?: string;
+  role?: HolderRole;
+  location?: string;
+}
+
+interface OrderFilter {
+  customerId?: string;
+  orderStatus?: OrderStatus;
+  dateFrom?: Date;
+  dateTo?: Date;
+}
+
+type ResolverFn<TArgs, TResult> = (_: unknown, args: TArgs) => Promise<TResult>;
 
 const resolvers = {
   // Query Resolvers
   Query: {
     // Asset queries
-    asset: async (_: any, { assetId }: { assetId: string }) => {
-      return prisma.asset.findUnique({
-        where: { assetId },
-        include: {
-          owner: true,
-          assignments: true,
-          shipments: true,
-          maintenances: true,
-          returnRequests: true,
-        },
-      });
-    },
+    asset: withErrorHandling<{ assetId: string }, any>(
+      async (_, { assetId }) => {
+        const asset = await prisma.asset.findUnique({
+          where: { assetId },
+          include: {
+            owner: true,
+            assignments: true,
+            shipments: true,
+            maintenances: true,
+            returnRequests: true,
+          },
+        });
 
-    assets: async (_: any, { filter, sort, limit, offset }: any) => {
+        if (!asset) {
+          throw new GraphQLError("Asset not found", "NOT_FOUND", 404);
+        }
+
+        return asset;
+      }
+    ),
+
+    assets: withErrorHandling<
+      {
+        filter?: AssetFilter;
+        sort?: AssetSort;
+        limit?: number;
+        offset?: number;
+      },
+      any[]
+    >(async (_, { filter, sort, limit, offset }) => {
       return prisma.asset.findMany({
         where: filter,
         orderBy: sort
@@ -42,22 +98,37 @@ const resolvers = {
           returnRequests: true,
         },
       });
-    },
+    }),
 
     // AssetHolder queries
-    assetHolder: async (_: any, { holderId }: { holderId: string }) => {
-      return prisma.assetHolder.findUnique({
-        where: { holderId },
-        include: {
-          ownedAssets: true,
-          assignments: true,
-          shipments: true,
-          returnRequests: true,
-        },
-      });
-    },
+    assetHolder: withErrorHandling<{ holderId: string }, any>(
+      async (_, { holderId }) => {
+        const holder = await prisma.assetHolder.findUnique({
+          where: { holderId },
+          include: {
+            ownedAssets: true,
+            assignments: true,
+            shipments: true,
+            returnRequests: true,
+          },
+        });
 
-    assetHolders: async (_: any, { filter, limit, offset }: any) => {
+        if (!holder) {
+          throw new GraphQLError("Asset holder not found", "NOT_FOUND", 404);
+        }
+
+        return holder;
+      }
+    ),
+
+    assetHolders: withErrorHandling<
+      {
+        filter?: AssetHolderFilter;
+        limit?: number;
+        offset?: number;
+      },
+      any[]
+    >(async (_, { filter, limit, offset }) => {
       return prisma.assetHolder.findMany({
         where: filter,
         take: limit,
@@ -69,20 +140,35 @@ const resolvers = {
           returnRequests: true,
         },
       });
-    },
+    }),
 
     // Assignment queries
-    assignment: async (_: any, { assignmentId }: { assignmentId: string }) => {
-      return prisma.assignment.findUnique({
-        where: { assignmentId },
-        include: {
-          asset: true,
-          holder: true,
-        },
-      });
-    },
+    assignment: withErrorHandling<{ assignmentId: string }, any>(
+      async (_, { assignmentId }) => {
+        const assignment = await prisma.assignment.findUnique({
+          where: { assignmentId },
+          include: {
+            asset: true,
+            holder: true,
+          },
+        });
 
-    assignments: async (_: any, { assetId, holderId, status }: any) => {
+        if (!assignment) {
+          throw new GraphQLError("Assignment not found", "NOT_FOUND", 404);
+        }
+
+        return assignment;
+      }
+    ),
+
+    assignments: withErrorHandling<
+      {
+        assetId?: string;
+        holderId?: string;
+        status?: AssignmentStatus;
+      },
+      any[]
+    >(async (_, { assetId, holderId, status }) => {
       return prisma.assignment.findMany({
         where: {
           ...(assetId && { assetId }),
@@ -94,126 +180,192 @@ const resolvers = {
           holder: true,
         },
       });
-    },
+    }),
 
     // Maintenance queries
-    maintenance: async (
-      _: any,
-      { maintenanceId }: { maintenanceId: string }
-    ) => {
-      return prisma.maintenance.findUnique({
-        where: { maintenanceId },
-        include: {
-          asset: true,
-        },
-      });
-    },
+    maintenance: withErrorHandling<{ maintenanceId: string }, any>(
+      async (_, { maintenanceId }) => {
+        const maintenance = await prisma.maintenance.findUnique({
+          where: { maintenanceId },
+          include: {
+            asset: true,
+          },
+        });
 
-    maintenances: async (_: any, { assetId, dateFrom, dateTo }: any) => {
+        if (!maintenance) {
+          throw new GraphQLError(
+            "Maintenance record not found",
+            "NOT_FOUND",
+            404
+          );
+        }
+
+        return maintenance;
+      }
+    ),
+
+    maintenances: withErrorHandling<
+      {
+        assetId?: string;
+        dateFrom?: Date;
+        dateTo?: Date;
+      },
+      any[]
+    >(async (_, { assetId, dateFrom, dateTo }) => {
       return prisma.maintenance.findMany({
         where: {
           ...(assetId && { assetId }),
-          ...(dateFrom &&
-            dateTo && {
-              maintenanceDate: {
-                gte: dateFrom,
-                lte: dateTo,
-              },
-            }),
+          ...(dateFrom && { date: { gte: dateFrom } }),
+          ...(dateTo && { date: { lte: dateTo } }),
         },
         include: {
           asset: true,
         },
       });
-    },
+    }),
 
     // Shipment queries
-    shipment: async (_: any, { shipmentId }: { shipmentId: string }) => {
-      return prisma.shipment.findUnique({
-        where: { shipmentId },
-        include: {
-          asset: true,
-          holder: true,
-        },
-      });
-    },
+    shipment: withErrorHandling<{ shipmentId: string }, any>(
+      async (_, { shipmentId }) => {
+        const shipment = await prisma.shipment.findUnique({
+          where: { shipmentId },
+          include: {
+            asset: true,
+            holder: true,
+          },
+        });
 
-    shipments: async (_: any, { assetId, holderId, status }: any) => {
+        if (!shipment) {
+          throw new GraphQLError("Shipment not found", "NOT_FOUND", 404);
+        }
+
+        return shipment;
+      }
+    ),
+
+    shipments: withErrorHandling<
+      {
+        assetId?: string;
+        holderId?: string;
+        status?: DeliveryStatus;
+      },
+      any[]
+    >(async (_, { assetId, holderId, status }) => {
       return prisma.shipment.findMany({
         where: {
           ...(assetId && { assetId }),
           ...(holderId && { holderId }),
-          ...(status && { deliveryStatus: status }),
+          ...(status && { status }),
         },
         include: {
           asset: true,
           holder: true,
         },
       });
-    },
+    }),
 
     // Return Request queries
-    returnRequest: async (_: any, { returnId }: { returnId: string }) => {
-      return prisma.returnRequest.findUnique({
-        where: { returnId },
-        include: {
-          holder: true,
-          customer: true,
-          asset: true,
-          order: true,
-        },
-      });
-    },
+    returnRequest: withErrorHandling<{ returnId: string }, any>(
+      async (_, { returnId }) => {
+        const returnRequest = await prisma.returnRequest.findUnique({
+          where: { returnId },
+          include: {
+            asset: true,
+            holder: true,
+          },
+        });
 
-    returnRequests: async (_: any, { holderId, customerId, status }: any) => {
+        if (!returnRequest) {
+          throw new GraphQLError("Return request not found", "NOT_FOUND", 404);
+        }
+
+        return returnRequest;
+      }
+    ),
+
+    returnRequests: withErrorHandling<
+      {
+        assetId?: string;
+        holderId?: string;
+        status?: ReturnStatus;
+      },
+      any[]
+    >(async (_, { assetId, holderId, status }) => {
       return prisma.returnRequest.findMany({
         where: {
+          ...(assetId && { assetId }),
           ...(holderId && { holderId }),
-          ...(customerId && { customerId }),
-          ...(status && { returnStatus: status }),
+          ...(status && { status }),
         },
         include: {
-          holder: true,
-          customer: true,
           asset: true,
-          order: true,
+          holder: true,
         },
       });
-    },
+    }),
 
     // Customer queries
-    customer: async (_: any, { customerId }: { customerId: string }) => {
-      return prisma.customer.findUnique({
-        where: { customerId },
-        include: {
-          orders: true,
-          returnRequests: true,
-        },
-      });
-    },
+    customer: withErrorHandling(
+      async (_: unknown, { customerId }: { customerId: string }) => {
+        const customer = await prisma.customer.findUnique({
+          where: { customerId },
+          include: {
+            orders: true,
+            returnRequests: true,
+          },
+        });
 
-    customers: async (_: any, { limit, offset }: any) => {
-      return prisma.customer.findMany({
-        take: limit,
-        skip: offset,
-        include: {
-          orders: true,
-          returnRequests: true,
-        },
-      });
-    },
+        if (!customer) {
+          throw new GraphQLError("Customer not found", "NOT_FOUND", 404);
+        }
+
+        return customer;
+      }
+    ),
+
+    customers: withErrorHandling(
+      async (
+        _: unknown,
+        { limit, offset }: { limit?: number; offset?: number }
+      ) => {
+        return prisma.customer.findMany({
+          take: limit,
+          skip: offset,
+          include: {
+            orders: true,
+            returnRequests: true,
+          },
+        });
+      }
+    ),
 
     // Product queries
-    product: async (_: any, { productId }: { productId: string }) => {
-      return prisma.product.findUnique({
-        where: { productId },
-        include: {
-          orderItems: true,
-        },
-      });
-    },
+    product: withErrorHandling<{ productId: string }, any>(
+      async (_, { productId }) => {
+        const product = await prisma.product.findUnique({
+          where: { productId },
+          include: {
+            orderItems: true,
+          },
+        });
 
-    products: async (_: any, { category, status, limit, offset }: any) => {
+        if (!product) {
+          throw new GraphQLError("Product not found", "NOT_FOUND", 404);
+        }
+
+        return product;
+      }
+    ),
+
+    products: withErrorHandling<
+      {
+        category?: string;
+        status?: ProductStatus;
+        limit?: number;
+        offset?: number;
+      },
+      any[]
+    >(async (_, { category, status, limit, offset }) => {
       return prisma.product.findMany({
         where: {
           ...(category && { category }),
@@ -225,21 +377,36 @@ const resolvers = {
           orderItems: true,
         },
       });
-    },
+    }),
 
     // Order queries
-    order: async (_: any, { orderId }: { orderId: string }) => {
-      return prisma.order.findUnique({
-        where: { orderId },
-        include: {
-          customer: true,
-          orderItems: true,
-          returnRequests: true,
-        },
-      });
-    },
+    order: withErrorHandling<{ orderId: string }, any>(
+      async (_, { orderId }) => {
+        const order = await prisma.order.findUnique({
+          where: { orderId },
+          include: {
+            customer: true,
+            orderItems: true,
+            returnRequests: true,
+          },
+        });
 
-    orders: async (_: any, { filter, limit, offset }: any) => {
+        if (!order) {
+          throw new GraphQLError("Order not found", "NOT_FOUND", 404);
+        }
+
+        return order;
+      }
+    ),
+
+    orders: withErrorHandling<
+      {
+        filter?: OrderFilter;
+        limit?: number;
+        offset?: number;
+      },
+      any[]
+    >(async (_, { filter, limit, offset }) => {
       return prisma.order.findMany({
         where: {
           ...(filter?.customerId && { customerId: filter.customerId }),
@@ -260,96 +427,143 @@ const resolvers = {
           returnRequests: true,
         },
       });
-    },
+    }),
   },
 
   // Mutation Resolvers
   Mutation: {
     // Asset mutations
-    createAsset: async (_: any, { input }: { input: any }) => {
-      return prisma.asset.create({
-        data: input,
-        include: {
-          owner: true,
-          assignments: true,
-          shipments: true,
-          maintenances: true,
-          returnRequests: true,
-        },
-      });
-    },
+    createAsset: withErrorHandling(
+      async (_: unknown, { input }: { input: any }) => {
+        return prisma.asset.create({
+          data: input,
+          include: {
+            owner: true,
+            assignments: true,
+            shipments: true,
+            maintenances: true,
+            returnRequests: true,
+          },
+        });
+      }
+    ),
 
-    updateAsset: async (
-      _: any,
-      { assetId, input }: { assetId: string; input: any }
-    ) => {
-      return prisma.asset.update({
-        where: { assetId },
-        data: input,
-        include: {
-          owner: true,
-          assignments: true,
-          shipments: true,
-          maintenances: true,
-          returnRequests: true,
-        },
-      });
-    },
+    updateAsset: withErrorHandling(
+      async (
+        _: unknown,
+        { assetId, input }: { assetId: string; input: any }
+      ) => {
+        const asset = await prisma.asset.findUnique({
+          where: { assetId },
+        });
 
-    deleteAsset: async (_: any, { assetId }: { assetId: string }) => {
-      await prisma.asset.delete({
-        where: { assetId },
-      });
-      return true;
-    },
+        if (!asset) {
+          throw new GraphQLError("Asset not found", "NOT_FOUND", 404);
+        }
+
+        return prisma.asset.update({
+          where: { assetId },
+          data: input,
+          include: {
+            owner: true,
+            assignments: true,
+            shipments: true,
+            maintenances: true,
+            returnRequests: true,
+          },
+        });
+      }
+    ),
+
+    deleteAsset: withErrorHandling(
+      async (_: unknown, { assetId }: { assetId: string }) => {
+        const asset = await prisma.asset.findUnique({
+          where: { assetId },
+        });
+
+        if (!asset) {
+          throw new GraphQLError("Asset not found", "NOT_FOUND", 404);
+        }
+
+        await prisma.asset.delete({
+          where: { assetId },
+        });
+        return true;
+      }
+    ),
 
     // AssetHolder mutations
-    createAssetHolder: async (_: any, { input }: { input: any }) => {
-      return prisma.assetHolder.create({
-        data: input,
-        include: {
-          ownedAssets: true,
-          assignments: true,
-          shipments: true,
-          returnRequests: true,
-        },
-      });
-    },
+    createAssetHolder: withErrorHandling(
+      async (_: unknown, { input }: { input: any }) => {
+        return prisma.assetHolder.create({
+          data: input,
+          include: {
+            ownedAssets: true,
+            assignments: true,
+            shipments: true,
+            returnRequests: true,
+          },
+        });
+      }
+    ),
 
-    updateAssetHolder: async (
-      _: any,
-      { holderId, input }: { holderId: string; input: any }
-    ) => {
-      return prisma.assetHolder.update({
-        where: { holderId },
-        data: input,
-        include: {
-          ownedAssets: true,
-          assignments: true,
-          shipments: true,
-          returnRequests: true,
-        },
-      });
-    },
+    updateAssetHolder: withErrorHandling(
+      async (
+        _: unknown,
+        { holderId, input }: { holderId: string; input: any }
+      ) => {
+        const holder = await prisma.assetHolder.findUnique({
+          where: { holderId },
+        });
 
-    deleteAssetHolder: async (_: any, { holderId }: { holderId: string }) => {
-      await prisma.assetHolder.delete({
-        where: { holderId },
-      });
-      return true;
-    },
+        if (!holder) {
+          throw new GraphQLError("Asset holder not found", "NOT_FOUND", 404);
+        }
+
+        return prisma.assetHolder.update({
+          where: { holderId },
+          data: input,
+          include: {
+            ownedAssets: true,
+            assignments: true,
+            shipments: true,
+            returnRequests: true,
+          },
+        });
+      }
+    ),
+
+    deleteAssetHolder: withErrorHandling(
+      async (_: unknown, { holderId }: { holderId: string }) => {
+        const holder = await prisma.assetHolder.findUnique({
+          where: { holderId },
+        });
+
+        if (!holder) {
+          throw new GraphQLError("Asset holder not found", "NOT_FOUND", 404);
+        }
+
+        await prisma.assetHolder.delete({
+          where: { holderId },
+        });
+        return true;
+      }
+    ),
 
     // Assignment mutations
-    createAssignment: async (_: any, { input }: { input: any }) => {
-      return prisma.assignment.create({
-        data: input,
-        include: {
-          asset: true,
-          holder: true,
-        },
-      });
-    },
+    createAssignment: withErrorHandling(
+      async (_: unknown, { input }: { input: any }) => {
+        return prisma.assignment.create({
+          data: input,
+          include: {
+            asset: true,
+            holder: true,
+          },
+        });
+      }
+    ),
 
+<<<<<<< HEAD
     updateAssignmentStatus: async (
       _: any,
       {
@@ -366,58 +580,104 @@ const resolvers = {
         },
       });
     },
+=======
+    updateAssignmentStatus: withErrorHandling(
+      async (
+        _: unknown,
+        {
+          assignmentId,
+          status,
+        }: { assignmentId: string; status: AssignmentStatus }
+      ) => {
+        return prisma.assignment.update({
+          where: { assignmentId },
+          data: { status },
+          include: {
+            asset: true,
+            holder: true,
+          },
+        });
+      }
+    ),
+>>>>>>> experimental
 
-    acknowledgeAssignment: async (
-      _: any,
-      { assignmentId }: { assignmentId: string }
-    ) => {
-      return prisma.assignment.update({
-        where: { assignmentId },
-        data: { acknowledgment: true },
-        include: {
-          asset: true,
-          holder: true,
-        },
-      });
-    },
+    acknowledgeAssignment: withErrorHandling(
+      async (_: unknown, { assignmentId }: { assignmentId: string }) => {
+        const assignment = await prisma.assignment.findUnique({
+          where: { assignmentId },
+        });
+
+        if (!assignment) {
+          throw new GraphQLError("Assignment not found", "NOT_FOUND", 404);
+        }
+
+        return prisma.assignment.update({
+          where: { assignmentId },
+          data: { acknowledgment: true },
+          include: {
+            asset: true,
+            holder: true,
+          },
+        });
+      }
+    ),
 
     // Maintenance mutations
-    createMaintenance: async (_: any, { input }: { input: any }) => {
-      return prisma.maintenance.create({
-        data: input,
-        include: {
-          asset: true,
-        },
-      });
-    },
+    createMaintenance: withErrorHandling(
+      async (_: unknown, { input }: { input: any }) => {
+        return prisma.maintenance.create({
+          data: input,
+          include: {
+            asset: true,
+          },
+        });
+      }
+    ),
 
-    updateMaintenanceResolution: async (
-      _: any,
-      {
-        maintenanceId,
-        resolution,
-      }: { maintenanceId: string; resolution: string }
-    ) => {
-      return prisma.maintenance.update({
-        where: { maintenanceId },
-        data: { resolution },
-        include: {
-          asset: true,
-        },
-      });
-    },
+    updateMaintenanceResolution: withErrorHandling(
+      async (
+        _: unknown,
+        {
+          maintenanceId,
+          resolution,
+        }: { maintenanceId: string; resolution: string }
+      ) => {
+        const maintenance = await prisma.maintenance.findUnique({
+          where: { maintenanceId },
+        });
+
+        if (!maintenance) {
+          throw new GraphQLError(
+            "Maintenance record not found",
+            "NOT_FOUND",
+            404
+          );
+        }
+
+        return prisma.maintenance.update({
+          where: { maintenanceId },
+          data: { resolution },
+          include: {
+            asset: true,
+          },
+        });
+      }
+    ),
 
     // Shipment mutations
-    createShipment: async (_: any, { input }: { input: any }) => {
-      return prisma.shipment.create({
-        data: input,
-        include: {
-          asset: true,
-          holder: true,
-        },
-      });
-    },
+    createShipment: withErrorHandling(
+      async (_: unknown, { input }: { input: any }) => {
+        return prisma.shipment.create({
+          data: input,
+          include: {
+            asset: true,
+            holder: true,
+          },
+        });
+      }
+    ),
 
+<<<<<<< HEAD
     updateShipmentStatus: async (
       _: any,
       { shipmentId, status }: { shipmentId: string; status: DeliveryStatus }
@@ -431,37 +691,67 @@ const resolvers = {
         },
       });
     },
+=======
+    updateShipmentStatus: withErrorHandling(
+      async (
+        _: unknown,
+        { shipmentId, status }: { shipmentId: string; status: DeliveryStatus }
+      ) => {
+        return prisma.shipment.update({
+          where: { shipmentId },
+          data: { deliveryStatus: status },
+          include: {
+            asset: true,
+            holder: true,
+          },
+        });
+      }
+    ),
+>>>>>>> experimental
 
-    updateTrackingNumber: async (
-      _: any,
-      {
-        shipmentId,
-        trackingNumber,
-      }: { shipmentId: string; trackingNumber: string }
-    ) => {
-      return prisma.shipment.update({
-        where: { shipmentId },
-        data: { trackingNumber },
-        include: {
-          asset: true,
-          holder: true,
-        },
-      });
-    },
+    updateTrackingNumber: withErrorHandling(
+      async (
+        _: unknown,
+        {
+          shipmentId,
+          trackingNumber,
+        }: { shipmentId: string; trackingNumber: string }
+      ) => {
+        const shipment = await prisma.shipment.findUnique({
+          where: { shipmentId },
+        });
+
+        if (!shipment) {
+          throw new GraphQLError("Shipment not found", "NOT_FOUND", 404);
+        }
+
+        return prisma.shipment.update({
+          where: { shipmentId },
+          data: { trackingNumber },
+          include: {
+            asset: true,
+            holder: true,
+          },
+        });
+      }
+    ),
 
     // Return Request mutations
-    createReturnRequest: async (_: any, { input }: { input: any }) => {
-      return prisma.returnRequest.create({
-        data: input,
-        include: {
-          holder: true,
-          customer: true,
-          asset: true,
-          order: true,
-        },
-      });
-    },
+    createReturnRequest: withErrorHandling(
+      async (_: unknown, { input }: { input: any }) => {
+        return prisma.returnRequest.create({
+          data: input,
+          include: {
+            holder: true,
+            customer: true,
+            asset: true,
+            order: true,
+          },
+        });
+      }
+    ),
 
+<<<<<<< HEAD
     updateReturnRequestStatus: async (
       _: any,
       { returnId, status }: { returnId: string; status: ReturnStatus }
@@ -477,116 +767,199 @@ const resolvers = {
         },
       });
     },
+=======
+    updateReturnRequestStatus: withErrorHandling(
+      async (
+        _: unknown,
+        { returnId, status }: { returnId: string; status: ReturnStatus }
+      ) => {
+        return prisma.returnRequest.update({
+          where: { returnId },
+          data: { returnStatus: status },
+          include: {
+            holder: true,
+            customer: true,
+            asset: true,
+            order: true,
+          },
+        });
+      }
+    ),
+>>>>>>> experimental
 
-    generatePrepaidLabel: async (
-      _: any,
-      { returnId }: { returnId: string }
-    ) => {
-      return prisma.returnRequest.update({
-        where: { returnId },
-        data: { prepaidLabelGenerated: true },
-        include: {
-          holder: true,
-          customer: true,
-          asset: true,
-          order: true,
-        },
-      });
-    },
+    generatePrepaidLabel: withErrorHandling(
+      async (_: unknown, { returnId }: { returnId: string }) => {
+        const returnRequest = await prisma.returnRequest.findUnique({
+          where: { returnId },
+        });
+
+        if (!returnRequest) {
+          throw new GraphQLError("Return request not found", "NOT_FOUND", 404);
+        }
+
+        return prisma.returnRequest.update({
+          where: { returnId },
+          data: { prepaidLabelGenerated: true },
+          include: {
+            holder: true,
+            customer: true,
+            asset: true,
+            order: true,
+          },
+        });
+      }
+    ),
 
     // Customer mutations
-    createCustomer: async (_: any, { input }: { input: any }) => {
-      return prisma.customer.create({
-        data: input,
-        include: {
-          orders: true,
-          returnRequests: true,
-        },
-      });
-    },
+    createCustomer: withErrorHandling(
+      async (_: unknown, { input }: { input: any }) => {
+        return prisma.customer.create({
+          data: input,
+          include: {
+            orders: true,
+            returnRequests: true,
+          },
+        });
+      }
+    ),
 
-    updateCustomer: async (
-      _: any,
-      { customerId, input }: { customerId: string; input: any }
-    ) => {
-      return prisma.customer.update({
-        where: { customerId },
-        data: input,
-        include: {
-          orders: true,
-          returnRequests: true,
-        },
-      });
-    },
+    updateCustomer: withErrorHandling(
+      async (
+        _: unknown,
+        { customerId, input }: { customerId: string; input: any }
+      ) => {
+        const customer = await prisma.customer.findUnique({
+          where: { customerId },
+        });
 
-    deleteCustomer: async (_: any, { customerId }: { customerId: string }) => {
-      await prisma.customer.delete({
-        where: { customerId },
-      });
-      return true;
-    },
+        if (!customer) {
+          throw new GraphQLError("Customer not found", "NOT_FOUND", 404);
+        }
+
+        return prisma.customer.update({
+          where: { customerId },
+          data: input,
+          include: {
+            orders: true,
+            returnRequests: true,
+          },
+        });
+      }
+    ),
+
+    deleteCustomer: withErrorHandling(
+      async (_: unknown, { customerId }: { customerId: string }) => {
+        const customer = await prisma.customer.findUnique({
+          where: { customerId },
+        });
+
+        if (!customer) {
+          throw new GraphQLError("Customer not found", "NOT_FOUND", 404);
+        }
+
+        await prisma.customer.delete({
+          where: { customerId },
+        });
+        return true;
+      }
+    ),
 
     // Product mutations
-    createProduct: async (_: any, { input }: { input: any }) => {
-      return prisma.product.create({
-        data: input,
-        include: {
-          orderItems: true,
-        },
-      });
-    },
+    createProduct: withErrorHandling(
+      async (_: unknown, { input }: { input: any }) => {
+        return prisma.product.create({
+          data: input,
+          include: {
+            orderItems: true,
+          },
+        });
+      }
+    ),
 
-    updateProduct: async (
-      _: any,
-      { productId, input }: { productId: string; input: any }
-    ) => {
-      return prisma.product.update({
-        where: { productId },
-        data: input,
-        include: {
-          orderItems: true,
-        },
-      });
-    },
+    updateProduct: withErrorHandling(
+      async (
+        _: unknown,
+        { productId, input }: { productId: string; input: any }
+      ) => {
+        const product = await prisma.product.findUnique({
+          where: { productId },
+        });
 
-    updateProductStock: async (
-      _: any,
-      { productId, quantity }: { productId: string; quantity: number }
-    ) => {
-      return prisma.product.update({
-        where: { productId },
-        data: { stockQuantity: quantity },
-        include: {
-          orderItems: true,
-        },
-      });
-    },
+        if (!product) {
+          throw new GraphQLError("Product not found", "NOT_FOUND", 404);
+        }
 
-    deleteProduct: async (_: any, { productId }: { productId: string }) => {
-      await prisma.product.delete({
-        where: { productId },
-      });
-      return true;
-    },
+        return prisma.product.update({
+          where: { productId },
+          data: input,
+          include: {
+            orderItems: true,
+          },
+        });
+      }
+    ),
+
+    updateProductStock: withErrorHandling(
+      async (
+        _: unknown,
+        { productId, quantity }: { productId: string; quantity: number }
+      ) => {
+        const product = await prisma.product.findUnique({
+          where: { productId },
+        });
+
+        if (!product) {
+          throw new GraphQLError("Product not found", "NOT_FOUND", 404);
+        }
+
+        return prisma.product.update({
+          where: { productId },
+          data: { stockQuantity: quantity },
+          include: {
+            orderItems: true,
+          },
+        });
+      }
+    ),
+
+    deleteProduct: withErrorHandling(
+      async (_: unknown, { productId }: { productId: string }) => {
+        const product = await prisma.product.findUnique({
+          where: { productId },
+        });
+
+        if (!product) {
+          throw new GraphQLError("Product not found", "NOT_FOUND", 404);
+        }
+
+        await prisma.product.delete({
+          where: { productId },
+        });
+        return true;
+      }
+    ),
 
     // Order mutations
-    createOrder: async (_: any, { input }: { input: any }) => {
-      const { orderItems, ...orderData } = input;
-      return prisma.order.create({
-        data: {
-          ...orderData,
-          orderItems: {
-            create: orderItems,
+    createOrder: withErrorHandling(
+      async (_: unknown, { input }: { input: any }) => {
+        const { orderItems, ...orderData } = input;
+        return prisma.order.create({
+          data: {
+            ...orderData,
+            orderItems: {
+              create: orderItems,
+            },
           },
-        },
-        include: {
-          customer: true,
-          orderItems: true,
-          returnRequests: true,
-        },
-      });
-    },
+          include: {
+            customer: true,
+            orderItems: true,
+            returnRequests: true,
+          },
+        });
+      }
+    ),
 
+<<<<<<< HEAD
     updateOrderStatus: async (
       _: any,
       { orderId, status }: { orderId: string; status: OrderStatus }
@@ -601,61 +974,97 @@ const resolvers = {
         },
       });
     },
+=======
+    updateOrderStatus: withErrorHandling(
+      async (
+        _: unknown,
+        { orderId, status }: { orderId: string; status: OrderStatus }
+      ) => {
+        return prisma.order.update({
+          where: { orderId },
+          data: { orderStatus: status },
+          include: {
+            customer: true,
+            orderItems: true,
+            returnRequests: true,
+          },
+        });
+      }
+    ),
+>>>>>>> experimental
 
-    cancelOrder: async (_: any, { orderId }: { orderId: string }) => {
-      return prisma.order.update({
-        where: { orderId },
-        data: { orderStatus: "CANCELLED" },
-        include: {
-          customer: true,
-          orderItems: true,
-          returnRequests: true,
-        },
-      });
-    },
+    cancelOrder: withErrorHandling(
+      async (_: unknown, { orderId }: { orderId: string }) => {
+        const order = await prisma.order.findUnique({
+          where: { orderId },
+        });
+
+        if (!order) {
+          throw new GraphQLError("Order not found", "NOT_FOUND", 404);
+        }
+
+        return prisma.order.update({
+          where: { orderId },
+          data: { orderStatus: OrderStatus.CANCELLED },
+          include: {
+            customer: true,
+            orderItems: true,
+            returnRequests: true,
+          },
+        });
+      }
+    ),
   },
 
   // Subscription Resolvers
   Subscription: {
     assetStatusChanged: {
-      subscribe: (_: any, { assetId }: { assetId?: string }) => {
-        // Implement pubsub logic here
-        return {
-          [Symbol.asyncIterator]() {
-            return this;
-          },
-        };
-      },
+      subscribe: withErrorHandling(
+        async (_: unknown, { assetId }: { assetId?: string }) => {
+          // Implement pubsub logic here
+          return {
+            [Symbol.asyncIterator]() {
+              return this;
+            },
+          };
+        }
+      ),
     },
     shipmentStatusChanged: {
-      subscribe: (_: any, { shipmentId }: { shipmentId?: string }) => {
-        // Implement pubsub logic here
-        return {
-          [Symbol.asyncIterator]() {
-            return this;
-          },
-        };
-      },
+      subscribe: withErrorHandling(
+        async (_: unknown, { shipmentId }: { shipmentId?: string }) => {
+          // Implement pubsub logic here
+          return {
+            [Symbol.asyncIterator]() {
+              return this;
+            },
+          };
+        }
+      ),
     },
     orderStatusChanged: {
-      subscribe: (_: any, { orderId }: { orderId?: string }) => {
-        // Implement pubsub logic here
-        return {
-          [Symbol.asyncIterator]() {
-            return this;
-          },
-        };
-      },
+      subscribe: withErrorHandling(
+        async (_: unknown, { orderId }: { orderId?: string }) => {
+          // Implement pubsub logic here
+          return {
+            [Symbol.asyncIterator]() {
+              return this;
+            },
+          };
+        }
+      ),
     },
     returnRequestStatusChanged: {
-      subscribe: (_: any, { returnId }: { returnId?: string }) => {
-        // Implement pubsub logic here
-        return {
-          [Symbol.asyncIterator]() {
-            return this;
-          },
-        };
-      },
+      subscribe: withErrorHandling(
+        async (_: unknown, { returnId }: { returnId?: string }) => {
+          // Implement pubsub logic here
+          return {
+            [Symbol.asyncIterator]() {
+              return this;
+            },
+          };
+        }
+      ),
     },
   },
 };
