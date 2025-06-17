@@ -25,8 +25,8 @@ export function validatePagination(limit?: number, offset?: number) {
   }
 }
 
-export function buildWhereClause(filters: Record<string, any>) {
-  const where: Record<string, any> = {};
+export function buildWhereClause(filters: Record<string, unknown>) {
+  const where: Record<string, unknown> = {};
 
   Object.entries(filters).forEach(([key, value]) => {
     if (value !== undefined && value !== null) {
@@ -45,7 +45,7 @@ export function buildOrderByClause(sort?: { field: string; order: string }) {
   };
 }
 
-export function handlePrismaError(error: any) {
+export function handlePrismaError(error: Error & { code?: string }) {
   if (error.code === "P2002") {
     throw new Error("A record with this value already exists");
   }
@@ -53,4 +53,49 @@ export function handlePrismaError(error: any) {
     throw new Error("Record not found");
   }
   throw error;
+}
+
+export class GraphQLError extends Error {
+  constructor(
+    message: string,
+    public code: string = "INTERNAL_SERVER_ERROR",
+    public status: number = 500
+  ) {
+    super(message);
+    this.name = "GraphQLError";
+  }
+}
+
+export function withErrorHandling<TArgs, TResult>(
+  resolver: (_: unknown, args: TArgs) => Promise<TResult>
+): (_: unknown, args: TArgs) => Promise<TResult> {
+  return async (_, args) => {
+    try {
+      return await resolver(_, args);
+    } catch (error) {
+      if (error instanceof GraphQLError) {
+        throw error;
+      }
+
+      if (error instanceof Error) {
+        // Handle Prisma errors
+        if (error.message.includes("Record to update does not exist")) {
+          throw new GraphQLError("Record not found", "NOT_FOUND", 404);
+        }
+        if (error.message.includes("Unique constraint failed")) {
+          throw new GraphQLError(
+            "A record with this value already exists",
+            "CONFLICT",
+            409
+          );
+        }
+
+        // Handle other known errors
+        throw new GraphQLError(error.message);
+      }
+
+      // Handle unknown errors
+      throw new GraphQLError("An unexpected error occurred");
+    }
+  };
 }
