@@ -1,22 +1,25 @@
-import { auth } from "./app/api/auth/[...nextauth]/route";
-import { NextResponse } from "next/server";
 
-export default auth((req) => {
-  const isLoggedIn = !!req.auth;
-  const isOnDashboard = req.nextUrl.pathname.startsWith("/dashboard");
-  const isOnAuth = req.nextUrl.pathname.startsWith("/auth");
+import { NextResponse } from 'next/server'
+import type { NextRequest } from 'next/server'
 
-  if (isOnDashboard && !isLoggedIn) {
-    return NextResponse.redirect(new URL("/auth/signin", req.url));
-  }
+// This function can be marked `async` if using `await` inside
+export function middleware(request: NextRequest) {
+  // This is a minimal middleware function.
+  // It currently doesn't do anything and just passes the request to the next handler.
+  // You can add logic here if you need to run code on certain requests.
+  return NextResponse.next()
+}
 
-  if (isOnAuth && isLoggedIn) {
-    return NextResponse.redirect(new URL("/dashboard", req.url));
-  }
-
-  return NextResponse.next();
-});
-
-export const config = {
-  matcher: ["/((?!api|_next/static|_next/image|favicon.ico).*)"],
-};
+// See "Matching Paths" below to learn more
+// export const config = {
+//   matcher: [
+//     /*
+//      * Match all request paths except for the ones starting with:
+//      * - api (API routes)
+//      * - _next/static (static files)
+//      * - _next/image (image optimization files)
+//      * - favicon.ico (favicon file)
+//      */
+//     '/((?!api|_next/static|_next/image|favicon.ico).*)',
+//   ],
+// }
