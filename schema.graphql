@@ -1,0 +1,550 @@
+# Asset Management System GraphQL Schema
+
+scalar Date
+scalar DateTime
+
+# Enums for better type safety
+enum AssetStatus {
+  AVAILABLE
+  ASSIGNED
+  UNDER_MAINTENANCE
+  DISPOSED
+}
+
+enum RequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  COMPLETED
+}
+
+enum RequestType {
+  ASSET
+  BUFFER_STOCK
+  SERVICE
+}
+
+enum AssignmentStatus {
+  ACTIVE
+  RETURNED
+  OVERDUE
+}
+
+enum ServiceType {
+  REPAIR
+  MAINTENANCE
+  INSPECTION
+}
+
+enum ServiceStatus {
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETED
+}
+
+enum ConsumptionStatus {
+  PENDING
+  APPROVED
+  COMPLETED
+}
+
+# Main Entity Types
+
+type Employee {
+  employeeId: ID!
+  firstName: String!
+  lastName: String!
+  department: String!
+  position: String!
+  email: String!
+  phone: String
+  hireDate: Date!
+  isActive: Boolean!
+  
+  # Relationships
+  procurementRequests: [ProcurementRequest!]!
+  approvedRequests: [ProcurementRequest!]!
+  assetAssignments: [AssetAssignment!]!
+  authorizedAssignments: [AssetAssignment!]!
+  serviceRequests: [RepairService!]!
+  bufferConsumptions: [BufferConsumption!]!
+  approvedConsumptions: [BufferConsumption!]!
+  managedBufferStock: [BufferStock!]!
+  equipmentManager: EquipmentManager
+  assignedAssets: [Asset!]!
+}
+
+type Asset {
+  assetId: ID!
+  assetName: String!
+  assetType: String!
+  model: String
+  serialNumber: String
+  purchasePrice: Float
+  purchaseDate: Date
+  warrantyExpiry: Date
+  status: AssetStatus!
+  specifications: String
+  location: String
+  
+  # Relationships
+  supplier: Supplier
+  primaryCustodian: Employee
+  assignments: [AssetAssignment!]!
+  repairServices: [RepairService!]!
+}
+
+type ProcurementRequest {
+  requestId: ID!
+  itemDescription: String!
+  quantity: Int!
+  specifications: String
+  estimatedCost: Float
+  requestDate: Date!
+  status: RequestStatus!
+  justification: String
+  approvedDate: Date
+  requestType: RequestType!
+  
+  # Relationships
+  requestedBy: Employee!
+  approvedBy: Employee
+  bufferStock: BufferStock
+  quotations: [Quotation!]!
+}
+
+type Supplier {
+  supplierId: ID!
+  supplierName: String!
+  contactPerson: String
+  email: String
+  phone: String
+  address: String
+  city: String
+  country: String
+  isActive: Boolean!
+  rating: Float
+  
+  # Relationships
+  assets: [Asset!]!
+  quotations: [Quotation!]!
+  lastOrderRates: [LastOrderRate!]!
+  preferredBufferStockItems: [BufferStock!]!
+}
+
+type Quotation {
+  quotationId: ID!
+  itemDescription: String!
+  quotedPrice: Float!
+  quantity: Int!
+  quotationDate: Date!
+  validUntil: Date
+  terms: String
+  specifications: String
+  isSelected: Boolean!
+  
+  # Relationships
+  supplier: Supplier!
+  procurementRequest: ProcurementRequest!
+}
+
+type BufferStock {
+  stockId: ID!
+  itemName: String!
+  itemType: String!
+  quantityAvailable: Int!
+  minimumStockLevel: Int!
+  maximumStockLevel: Int!
+  specifications: String
+  storageLocation: String
+  lastUpdated: DateTime!
+  unitCost: Float
+  autoReorderEnabled: Boolean!
+  
+  # Relationships
+  preferredSupplier: Supplier
+  managedBy: Employee!
+  consumptions: [BufferConsumption!]!
+  procurementRequests: [ProcurementRequest!]!
+  lastOrderRates: [LastOrderRate!]!
+}
+
+type BufferConsumption {
+  consumptionId: ID!
+  quantityConsumed: Int!
+  consumptionDate: Date!
+  purpose: String
+  projectCode: String
+  status: ConsumptionStatus!
+  
+  # Relationships
+  bufferStock: BufferStock!
+  employee: Employee!
+  approvedBy: Employee
+}
+
+type AssetAssignment {
+  assignmentId: ID!
+  assignedDate: Date!
+  returnDate: Date
+  assignmentStatus: AssignmentStatus!
+  conditionAtAssignment: String
+  conditionAtReturn: String
+  notes: String
+  
+  # Relationships
+  asset: Asset!
+  employee: Employee!
+  assignedBy: Employee!
+}
+
+type ServiceVendor {
+  vendorId: ID!
+  vendorName: String!
+  contactPerson: String
+  email: String
+  phone: String
+  address: String
+  specialization: String
+  rating: Float
+  isActive: Boolean!
+  
+  # Relationships
+  repairServices: [RepairService!]!
+}
+
+type RepairService {
+  serviceId: ID!
+  serviceDate: Date!
+  serviceType: ServiceType!
+  description: String!
+  cost: Float
+  status: ServiceStatus!
+  completionDate: Date
+  warrantyPeriod: String
+  
+  # Relationships
+  asset: Asset!
+  vendor: ServiceVendor!
+  requestedBy: Employee!
+}
+
+type LastOrderRate {
+  rateId: ID!
+  itemDescription: String!
+  lastPrice: Float!
+  lastOrderDate: Date!
+  quantityOrdered: Int!
+  specifications: String
+  
+  # Relationships
+  supplier: Supplier!
+  bufferStock: BufferStock
+}
+
+type EquipmentManager {
+  managerId: ID!
+  department: String!
+  assignedDate: Date!
+  isActive: Boolean!
+  
+  # Relationships
+  employee: Employee!
+}
+
+# Input Types for Mutations
+
+input CreateEmployeeInput {
+  firstName: String!
+  lastName: String!
+  department: String!
+  position: String!
+  email: String!
+  phone: String
+  hireDate: Date!
+}
+
+input UpdateEmployeeInput {
+  firstName: String
+  lastName: String
+  department: String
+  position: String
+  email: String
+  phone: String
+  isActive: Boolean
+}
+
+input CreateAssetInput {
+  assetName: String!
+  assetType: String!
+  model: String
+  serialNumber: String
+  purchasePrice: Float
+  purchaseDate: Date
+  warrantyExpiry: Date
+  specifications: String
+  location: String
+  supplierId: ID
+  employeeId: ID
+}
+
+input UpdateAssetInput {
+  assetName: String
+  assetType: String
+  model: String
+  serialNumber: String
+  status: AssetStatus
+  specifications: String
+  location: String
+  employeeId: ID
+}
+
+input CreateProcurementRequestInput {
+  itemDescription: String!
+  quantity: Int!
+  specifications: String
+  estimatedCost: Float
+  justification: String
+  requestType: RequestType!
+  bufferStockId: ID
+}
+
+input CreateSupplierInput {
+  supplierName: String!
+  contactPerson: String
+  email: String
+  phone: String
+  address: String
+  city: String
+  country: String
+  rating: Float
+}
+
+input CreateQuotationInput {
+  supplierId: ID!
+  requestId: ID!
+  itemDescription: String!
+  quotedPrice: Float!
+  quantity: Int!
+  validUntil: Date
+  terms: String
+  specifications: String
+}
+
+input CreateBufferStockInput {
+  itemName: String!
+  itemType: String!
+  quantityAvailable: Int!
+  minimumStockLevel: Int!
+  maximumStockLevel: Int!
+  specifications: String
+  storageLocation: String
+  unitCost: Float
+  autoReorderEnabled: Boolean = false
+  preferredSupplierId: ID
+  managedBy: ID!
+}
+
+input CreateAssetAssignmentInput {
+  assetId: ID!
+  employeeId: ID!
+  conditionAtAssignment: String
+  notes: String
+}
+
+input CreateServiceVendorInput {
+  vendorName: String!
+  contactPerson: String
+  email: String
+  phone: String
+  address: String
+  specialization: String
+  rating: Float
+}
+
+input CreateRepairServiceInput {
+  assetId: ID!
+  vendorId: ID!
+  serviceType: ServiceType!
+  description: String!
+  cost: Float
+}
+
+input CreateBufferConsumptionInput {
+  stockId: ID!
+  quantityConsumed: Int!
+  purpose: String
+  projectCode: String
+}
+
+# Filter and Sorting Inputs
+
+input AssetFilter {
+  assetType: String
+  status: AssetStatus
+  supplierId: ID
+  employeeId: ID
+  location: String
+}
+
+input EmployeeFilter {
+  department: String
+  position: String
+  isActive: Boolean
+}
+
+input ProcurementRequestFilter {
+  status: RequestStatus
+  requestType: RequestType
+  requestedBy: ID
+  approvedBy: ID
+}
+
+input BufferStockFilter {
+  itemType: String
+  belowMinimum: Boolean
+  managedBy: ID
+}
+
+enum SortOrder {
+  ASC
+  DESC
+}
+
+input AssetSort {
+  field: String!
+  order: SortOrder!
+}
+
+# Query Root Type
+
+type Query {
+  # Employee queries
+  employee(id: ID!): Employee
+  employees(filter: EmployeeFilter, limit: Int, offset: Int): [Employee!]!
+  
+  # Asset queries
+  asset(id: ID!): Asset
+  assets(filter: AssetFilter, sort: AssetSort, limit: Int, offset: Int): [Asset!]!
+  availableAssets(assetType: String): [Asset!]!
+  
+  # Procurement queries
+  procurementRequest(id: ID!): ProcurementRequest
+  procurementRequests(filter: ProcurementRequestFilter, limit: Int, offset: Int): [ProcurementRequest!]!
+  pendingRequests: [ProcurementRequest!]!
+  
+  # Supplier queries
+  supplier(id: ID!): Supplier
+  suppliers(isActive: Boolean, limit: Int, offset: Int): [Supplier!]!
+  
+  # Buffer Stock queries
+  bufferStock(id: ID!): BufferStock
+  bufferStocks(filter: BufferStockFilter, limit: Int, offset: Int): [BufferStock!]!
+  lowStockItems: [BufferStock!]!
+  
+  # Service queries
+  serviceVendor(id: ID!): ServiceVendor
+  serviceVendors(specialization: String, isActive: Boolean): [ServiceVendor!]!
+  repairService(id: ID!): RepairService
+  repairServices(assetId: ID, status: ServiceStatus, limit: Int, offset: Int): [RepairService!]!
+  
+  # Assignment queries
+  assetAssignment(id: ID!): AssetAssignment
+  assetAssignments(employeeId: ID, assetId: ID, status: AssignmentStatus): [AssetAssignment!]!
+  overdueAssignments: [AssetAssignment!]!
+  
+  # Analytics queries
+  assetUtilizationReport(department: String, dateFrom: Date, dateTo: Date): [AssetUtilizationStat!]!
+  procurementSpendingReport(dateFrom: Date, dateTo: Date): [SpendingStat!]!
+  bufferConsumptionReport(stockId: ID, dateFrom: Date, dateTo: Date): [ConsumptionStat!]!
+}
+
+# Mutation Root Type
+
+type Mutation {
+  # Employee mutations
+  createEmployee(input: CreateEmployeeInput!): Employee!
+  updateEmployee(id: ID!, input: UpdateEmployeeInput!): Employee!
+  deactivateEmployee(id: ID!): Employee!
+  
+  # Asset mutations
+  createAsset(input: CreateAssetInput!): Asset!
+  updateAsset(id: ID!, input: UpdateAssetInput!): Asset!
+  disposeAsset(id: ID!, reason: String): Asset!
+  
+  # Procurement mutations
+  createProcurementRequest(input: CreateProcurementRequestInput!): ProcurementRequest!
+  approveProcurementRequest(id: ID!, approverId: ID!): ProcurementRequest!
+  rejectProcurementRequest(id: ID!, approverId: ID!, reason: String): ProcurementRequest!
+  completeProcurementRequest(id: ID!): ProcurementRequest!
+  
+  # Supplier mutations
+  createSupplier(input: CreateSupplierInput!): Supplier!
+  updateSupplier(id: ID!, input: CreateSupplierInput!): Supplier!
+  deactivateSupplier(id: ID!): Supplier!
+  
+  # Quotation mutations
+  createQuotation(input: CreateQuotationInput!): Quotation!
+  selectQuotation(id: ID!): Quotation!
+  
+  # Buffer Stock mutations
+  createBufferStock(input: CreateBufferStockInput!): BufferStock!
+  updateBufferStockQuantity(id: ID!, quantity: Int!): BufferStock!
+  recordBufferConsumption(input: CreateBufferConsumptionInput!): BufferConsumption!
+  approveBufferConsumption(id: ID!, approverId: ID!): BufferConsumption!
+  
+  # Asset Assignment mutations
+  assignAsset(input: CreateAssetAssignmentInput!): AssetAssignment!
+  returnAsset(assignmentId: ID!, conditionAtReturn: String): AssetAssignment!
+  
+  # Service mutations
+  createServiceVendor(input: CreateServiceVendorInput!): ServiceVendor!
+  scheduleRepairService(input: CreateRepairServiceInput!): RepairService!
+  completeRepairService(id: ID!, completionDate: Date!, warrantyPeriod: String): RepairService!
+  
+  # Equipment Manager mutations
+  assignEquipmentManager(employeeId: ID!, department: String!): EquipmentManager!
+  removeEquipmentManager(managerId: ID!): Boolean!
+}
+
+# Subscription Root Type
+
+type Subscription {
+  # Real-time notifications
+  lowStockAlert: BufferStock!
+  newProcurementRequest: ProcurementRequest!
+  assetAssignmentUpdate: AssetAssignment!
+  serviceStatusUpdate: RepairService!
+  quotationReceived: Quotation!
+}
+
+# Analytics Types
+
+type AssetUtilizationStat {
+  assetType: String!
+  totalAssets: Int!
+  assignedAssets: Int!
+  utilizationRate: Float!
+  department: String
+}
+
+type SpendingStat {
+  month: String!
+  totalSpending: Float!
+  requestCount: Int!
+  averageRequestValue: Float!
+  topCategory: String!
+}
+
+type ConsumptionStat {
+  itemName: String!
+  totalConsumed: Int!
+  consumptionsByDepartment: [DepartmentConsumption!]!
+  averageMonthlyConsumption: Float!
+}
+
+type DepartmentConsumption {
+  department: String!
+  quantity: Int!
+  percentage: Float!
+}
