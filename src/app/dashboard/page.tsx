@@ -1,3 +1,16 @@
+"use client";
+
+import { useAssets } from "@/src/hooks/useAssets";
+import { useAssetHolders } from "@/src/hooks/useAssetHolders";
+import { useOrders } from "@/src/hooks/useOrders";
+import { useProducts } from "@/src/hooks/useProducts";
+import { useAssignments } from "@/src/hooks/useAssignments";
+import { useMaintenance } from "@/src/hooks/useMaintenance";
+import { useShipments } from "@/src/hooks/useShipments";
+import { useReturnRequests } from "@/src/hooks/useReturnRequests";
+import { useCustomers } from "@/src/hooks/useCustomers";
+import { useEffect } from "react";
+import { StatsCards } from "@/src/components/global/StatsCards";
 import {
   Card,
   CardContent,
@@ -18,119 +31,160 @@ import {
   TrendingUp,
   AlertTriangle,
   CheckCircle,
+  User,
 } from "lucide-react";
+import { Avatar, AvatarFallback } from "@/src/components/ui/avatar";
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableHead,
+  TableRow,
+  TableCell,
+} from "@/src/components/ui/table";
 import Link from "next/link";
 
-// Mock data based on schema structure
-const mockStats = {
-  totalAssets: 1247,
-  availableAssets: 892,
-  assignedAssets: 298,
-  maintenanceAssets: 57,
-  totalHolders: 156,
-  activeAssignments: 245,
-  pendingShipments: 23,
-  returnRequests: 12,
-  totalOrders: 89,
-  totalCustomers: 67,
-};
-
-const mockRecentActivities = [
-  {
-    id: "1",
-    type: "assignment",
-    title: "Asset Assigned",
-    description: "Laptop Dell XPS 13 assigned to John Smith",
-    timestamp: "2 hours ago",
-    status: "completed",
-  },
-  {
-    id: "2",
-    type: "maintenance",
-    title: "Maintenance Scheduled",
-    description: "Printer HP LaserJet scheduled for maintenance",
-    timestamp: "4 hours ago",
-    status: "pending",
-  },
-  {
-    id: "3",
-    type: "shipment",
-    title: "Shipment Delivered",
-    description: 'Monitor Samsung 27" delivered to Marketing Dept',
-    timestamp: "6 hours ago",
-    status: "completed",
-  },
-  {
-    id: "4",
-    type: "return",
-    title: "Return Request",
-    description: "Tablet iPad Pro return requested by Sarah Johnson",
-    timestamp: "1 day ago",
-    status: "pending",
-  },
-  {
-    id: "5",
-    type: "order",
-    title: "New Order",
-    description: "Order #ORD-2024-001 placed by Tech Solutions Inc",
-    timestamp: "1 day ago",
-    status: "pending",
-  },
+// Placeholder/mock data for AnalyticsReport, ApiIntegration, and User
+const analyticsReports = [
+  { reportId: "r1", reportType: "Compliance", complianceFlag: false, generatedDate: new Date(), details: {} },
+  { reportId: "r2", reportType: "Loss/Damage", complianceFlag: true, generatedDate: new Date(), details: {} },
 ];
-
-const mockAssetStatus = [
-  { status: "Available", count: 892, percentage: 71.5, color: "bg-green-500" },
-  { status: "Assigned", count: 298, percentage: 23.9, color: "bg-blue-500" },
-  {
-    status: "In Maintenance",
-    count: 57,
-    percentage: 4.6,
-    color: "bg-yellow-500",
-  },
+const apiIntegrations = [
+  { integrationId: "a1", systemName: "SAP", apiType: "REST", status: "ACTIVE", lastSyncTime: new Date() },
+  { integrationId: "a2", systemName: "Legacy", apiType: "SOAP", status: "INACTIVE", lastSyncTime: new Date() },
 ];
-
-const getActivityIcon = (type: string) => {
-  switch (type) {
-    case "assignment":
-      return <Users className="h-4 w-4" />;
-    case "maintenance":
-      return <Wrench className="h-4 w-4" />;
-    case "shipment":
-      return <Truck className="h-4 w-4" />;
-    case "return":
-      return <ArrowUpDown className="h-4 w-4" />;
-    case "order":
-      return <ShoppingCart className="h-4 w-4" />;
-    default:
-      return <Activity className="h-4 w-4" />;
-  }
-};
-
-const getStatusBadge = (status: string) => {
-  switch (status) {
-    case "completed":
-      return (
-        <Badge variant="default" className="bg-green-100 text-green-800">
-          <CheckCircle className="h-3 w-3 mr-1" />
-          Completed
-        </Badge>
-      );
-    case "pending":
-      return (
-        <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">
-          <AlertTriangle className="h-3 w-3 mr-1" />
-          Pending
-        </Badge>
-      );
-    default:
-      return <Badge variant="outline">{status}</Badge>;
-  }
-};
 
 export default function DashboardPage() {
+  // Hooks for all entities
+  const { assets, fetchAssets, loading: loadingAssets } = useAssets();
+  const { assetHolders, fetchAssetHolders, loading: loadingHolders } = useAssetHolders();
+  const { orders, fetchOrders, loading: loadingOrders } = useOrders();
+  const { products, fetchProducts, loading: loadingProducts } = useProducts();
+  const { assignments, fetchAssignments, loading: loadingAssignments } = useAssignments();
+  const { maintenances, fetchMaintenances, loading: loadingMaintenances } = useMaintenance();
+  const { shipments, fetchShipments, loading: loadingShipments } = useShipments();
+  const { returnRequests, fetchReturnRequests, loading: loadingReturns } = useReturnRequests();
+  const { customers, fetchCustomers, loading: loadingCustomers } = useCustomers();
+
+  // Mock users only for stats count
+  const users = [
+    { id: "u1", name: "Admin User", email: "admin@example.com", role: "ADMIN" },
+    { id: "u2", name: "Jane Doe", email: "jane@example.com", role: "USER" },
+  ];
+
+  useEffect(() => {
+    fetchAssets();
+    fetchAssetHolders();
+    fetchOrders();
+    fetchProducts();
+    fetchAssignments();
+    fetchMaintenances();
+    fetchShipments();
+    fetchReturnRequests();
+    fetchCustomers();
+    // eslint-disable-next-line
+  }, []);
+
+  // Stats for the dashboard (expanded)
+  const stats = [
+    { title: "Total Assets", value: loadingAssets ? "..." : assets.length, link: "/dashboard/assets" },
+    { title: "Asset Holders", value: loadingHolders ? "..." : assetHolders.length, link: "/dashboard/asset-holders" },
+    { title: "Shipments", value: loadingShipments ? "..." : shipments.length, link: "/dashboard/shipment" },
+    { title: "Assignments", value: loadingAssignments ? "..." : assignments.length, link: "/dashboard/assignment" },
+    { title: "Maintenances", value: loadingMaintenances ? "..." : maintenances.length, link: "/dashboard/maintenances" },
+    { title: "Return Requests", value: loadingReturns ? "..." : returnRequests.length, link: "/dashboard/returnrequest" },
+    { title: "Analytics Reports", value: analyticsReports.length, link: "/dashboard/analytics" },
+    { title: "API Integrations", value: apiIntegrations.length, link: "/dashboard/integrations" },
+    { title: "Customers", value: loadingCustomers ? "..." : customers.length, link: "/dashboard/customers" },
+    { title: "Products", value: loadingProducts ? "..." : products.length, link: "/dashboard/products" },
+    { title: "Orders", value: loadingOrders ? "..." : orders.length, link: "/dashboard/orders" },
+    { title: "Users", value: users.length, link: "/dashboard/users" },
+  ];
+
+  // Recent activities (combine latest from assignments, maintenances, shipments, returns, orders)
+  const recentActivities = [
+    ...assignments.slice(0, 2).map((a) => ({
+      id: a.assignmentId,
+      type: "assignment",
+      title: "Asset Assigned",
+      description: `Asset ${a.assetId} assigned to Holder ${a.holderId}`,
+      timestamp: a.assignedDate ? new Date(a.assignedDate).toLocaleString() : "-",
+      status: a.status,
+    })),
+    ...maintenances.slice(0, 2).map((m) => ({
+      id: m.maintenanceId,
+      type: "maintenance",
+      title: "Maintenance Scheduled",
+      description: `Asset ${m.assetId} maintenance: ${m.issueReported}`,
+      timestamp: m.maintenanceDate ? new Date(m.maintenanceDate).toLocaleString() : "-",
+      status: m.resolution ? "completed" : "pending",
+    })),
+    ...shipments.slice(0, 2).map((s) => ({
+      id: s.shipmentId,
+      type: "shipment",
+      title: "Shipment",
+      description: `Asset ${s.assetId} shipped to Holder ${s.holderId}`,
+      timestamp: s.shipmentDate ? new Date(s.shipmentDate).toLocaleString() : "-",
+      status: s.deliveryStatus,
+    })),
+    ...returnRequests.slice(0, 2).map((r) => ({
+      id: r.returnId,
+      type: "return",
+      title: "Return Request",
+      description: `Asset ${r.assetId} return requested by Holder ${r.holderId}`,
+      timestamp: r.requestDate ? new Date(r.requestDate).toLocaleString() : "-",
+      status: r.returnStatus,
+    })),
+    ...orders.slice(0, 2).map((o) => ({
+      id: o.orderId,
+      type: "order",
+      title: "Order",
+      description: `Order ${o.orderId} placed by Customer ${o.customerId}`,
+      timestamp: o.orderDate ? new Date(o.orderDate).toLocaleString() : "-",
+      status: o.orderStatus,
+    })),
+  ].slice(0, 5);
+
+  // Users (show first 3 asset holders)
+  const displayedUsers = assetHolders.slice(0, 3);
+
+  // Recent orders (show first 3 orders)
+  const recentOrders = orders.slice(0, 3);
+
+  const getActivityIcon = (type: string) => {
+    switch (type) {
+      case "assignment": return <Users className="h-4 w-4" />;
+      case "maintenance": return <Wrench className="h-4 w-4" />;
+      case "shipment": return <Truck className="h-4 w-4" />;
+      case "return": return <ArrowUpDown className="h-4 w-4" />;
+      case "order": return <ShoppingCart className="h-4 w-4" />;
+      default: return <Activity className="h-4 w-4" />;
+    }
+  };
+
+  const getStatusBadge = (status: string) => {
+    switch (status.toLowerCase()) {
+      case "completed":
+      case "shipped":
+      case "delivered":
+        return (
+          <Badge variant="default" className="bg-green-100 text-green-800">
+            <CheckCircle className="h-3 w-3 mr-1" /> {status}
+          </Badge>
+        );
+      case "pending":
+        return (
+          <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">
+            <AlertTriangle className="h-3 w-3 mr-1" /> {status}
+          </Badge>
+        );
+      default:
+        return <Badge variant="outline">{status}</Badge>;
+    }
+  };
+
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
@@ -138,155 +192,66 @@ export default function DashboardPage() {
             Welcome to your equipment management dashboard
           </p>
         </div>
-        <div className="flex items-center space-x-2">
-          <Button variant="outline">
-            <TrendingUp className="h-4 w-4 mr-2" />
-            Generate Report
-          </Button>
-        </div>
+        <Button variant="outline">
+          <TrendingUp className="h-4 w-4 mr-2" /> Generate Report
+        </Button>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Assets</CardTitle>
-            <Package className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {mockStats.totalAssets.toLocaleString()}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              +12% from last month
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Available Assets
-            </CardTitle>
-            <CheckCircle className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {mockStats.availableAssets.toLocaleString()}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {(
-                (mockStats.availableAssets / mockStats.totalAssets) *
-                100
-              ).toFixed(1)}
-              % of total
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Active Assignments
-            </CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {mockStats.activeAssignments.toLocaleString()}
-            </div>
-            <p className="text-xs text-muted-foreground">+8% from last week</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Pending Actions
-            </CardTitle>
-            <AlertTriangle className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {mockStats.pendingShipments + mockStats.returnRequests}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {mockStats.pendingShipments} shipments, {mockStats.returnRequests}{" "}
-              returns
-            </p>
-          </CardContent>
-        </Card>
+      {/* Expanded Stats Grid with links */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+        {stats.map((stat) => (
+          <Link key={stat.title} href={stat.link} className="block">
+            <Card className="hover:shadow-lg transition-shadow">
+              <CardContent className="flex flex-col items-center justify-center py-6">
+                <span className="text-2xl font-bold">{stat.value}</span>
+                <span className="text-sm text-muted-foreground mt-2">{stat.title}</span>
+              </CardContent>
+            </Card>
+          </Link>
+        ))}
       </div>
 
-      {/* Asset Status Overview */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        <Card className="col-span-2">
+      {/* Health/Status Widgets */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <Card>
           <CardHeader>
-            <CardTitle>Asset Status Overview</CardTitle>
-            <CardDescription>
-              Distribution of assets by current status
-            </CardDescription>
+            <CardTitle>Integration Status</CardTitle>
+            <CardDescription>Monitor your API integrations</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {mockAssetStatus.map((item) => (
-                <div
-                  key={item.status}
-                  className="flex items-center justify-between"
-                >
-                  <div className="flex items-center space-x-2">
-                    <div className={`w-3 h-3 rounded-full ${item.color}`} />
-                    <span className="text-sm font-medium">{item.status}</span>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <span className="text-sm text-muted-foreground">
-                      {item.count} assets
-                    </span>
-                    <span className="text-sm font-medium">
-                      {item.percentage}%
-                    </span>
-                  </div>
-                </div>
+            <ul>
+              {apiIntegrations.map((integration) => (
+                <li key={integration.integrationId} className="flex items-center justify-between py-2">
+                  <span>{integration.systemName} ({integration.apiType})</span>
+                  <Badge variant={integration.status === "ACTIVE" ? "default" : "destructive"}>
+                    {integration.status}
+                  </Badge>
+                </li>
               ))}
-            </div>
+            </ul>
           </CardContent>
         </Card>
-
         <Card>
           <CardHeader>
-            <CardTitle>Quick Actions</CardTitle>
-            <CardDescription>Common tasks and shortcuts</CardDescription>
+            <CardTitle>Compliance & Analytics</CardTitle>
+            <CardDescription>Latest compliance and analytics reports</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-2">
-            <Button asChild className="w-full justify-start" variant="outline">
-              <Link href="/dashboard/assets">
-                <Package className="h-4 w-4 mr-2" />
-                Manage Assets
-              </Link>
-            </Button>
-            <Button asChild className="w-full justify-start" variant="outline">
-              <Link href="/dashboard/assignment">
-                <Users className="h-4 w-4 mr-2" />
-                Assign Assets
-              </Link>
-            </Button>
-            <Button asChild className="w-full justify-start" variant="outline">
-              <Link href="/dashboard/maintenances">
-                <Wrench className="h-4 w-4 mr-2" />
-                Schedule Maintenance
-              </Link>
-            </Button>
-            <Button asChild className="w-full justify-start" variant="outline">
-              <Link href="/dashboard/shipment">
-                <Truck className="h-4 w-4 mr-2" />
-                Track Shipments
-              </Link>
-            </Button>
+          <CardContent>
+            <ul>
+              {analyticsReports.map((report) => (
+                <li key={report.reportId} className="flex items-center justify-between py-2">
+                  <span>{report.reportType}</span>
+                  <Badge variant={report.complianceFlag ? "default" : "destructive"}>
+                    {report.complianceFlag ? "Compliant" : "Non-Compliant"}
+                  </Badge>
+                </li>
+              ))}
+            </ul>
           </CardContent>
         </Card>
       </div>
 
-      {/* Recent Activities */}
+      {/* Activities */}
       <Card>
         <CardHeader>
           <CardTitle>Recent Activities</CardTitle>
@@ -296,27 +261,18 @@ export default function DashboardPage() {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {mockRecentActivities.map((activity) => (
-              <div
-                key={activity.id}
-                className="flex items-center space-x-4 p-4 border rounded-lg"
-              >
-                <div className="flex-shrink-0">
-                  <div className="w-8 h-8 bg-muted rounded-full flex items-center justify-center">
-                    {getActivityIcon(activity.type)}
-                  </div>
+            {recentActivities.map((activity) => (
+              <div key={activity.id} className="flex items-center space-x-4 p-4 border rounded-lg">
+                <div className="w-8 h-8 bg-muted rounded-full flex items-center justify-center">
+                  {getActivityIcon(activity.type)}
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium">{activity.title}</p>
-                  <p className="text-sm text-muted-foreground">
-                    {activity.description}
-                  </p>
+                  <p className="text-sm text-muted-foreground">{activity.description}</p>
                 </div>
                 <div className="flex items-center space-x-2">
                   {getStatusBadge(activity.status)}
-                  <span className="text-xs text-muted-foreground">
-                    {activity.timestamp}
-                  </span>
+                  <span className="text-xs text-muted-foreground">{activity.timestamp}</span>
                 </div>
               </div>
             ))}
@@ -326,6 +282,69 @@ export default function DashboardPage() {
               View All Activities
             </Button>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Users */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Users</CardTitle>
+          <CardDescription>Manage your team members</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {displayedUsers.map((user) => (
+              <Card key={user.holderId} className="p-4">
+                <div className="flex items-center space-x-4">
+                  <Avatar>
+                    <AvatarFallback>{user.name[0]}</AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <h3 className="text-sm font-medium">{user.name}</h3>
+                    <p className="text-xs text-muted-foreground">{user.email}</p>
+                    <p className="text-xs text-blue-500">{user.role}</p>
+                  </div>
+                </div>
+                <div className="mt-4 text-right">
+                  <Button size="sm" variant="outline">
+                    View Profile
+                  </Button>
+                </div>
+              </Card>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Orders Table */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Recent Orders</CardTitle>
+          <CardDescription>Track the latest orders placed</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Order ID</TableHead>
+                <TableHead>Customer</TableHead>
+                <TableHead>Date</TableHead>
+                <TableHead>Total</TableHead>
+                <TableHead>Status</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {recentOrders.map((order) => (
+                <TableRow key={order.orderId}>
+                  <TableCell>{order.orderId}</TableCell>
+                  <TableCell>{order.customer?.name || order.customerId}</TableCell>
+                  <TableCell>{order.orderDate ? new Date(order.orderDate).toLocaleDateString() : "-"}</TableCell>
+                  <TableCell>{order.totalAmount}</TableCell>
+                  <TableCell>{getStatusBadge(order.orderStatus)}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         </CardContent>
       </Card>
     </div>
