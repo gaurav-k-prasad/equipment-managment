@@ -1,385 +1,409 @@
+# Asset Management System GraphQL Schema
+
+scalar Date
 scalar DateTime
-scalar Decimal
-scalar JSON
 
-# Enums
+# Enums for better type safety
 enum AssetStatus {
-  ASSIGNED
-  IN_MAINTENANCE
   AVAILABLE
-  RETIRED
-  LOST
+  ASSIGNED
+  UNDER_MAINTENANCE
+  DISPOSED
 }
 
-enum HolderRole {
-  EMPLOYEE
-  MANAGER
-  ADMIN
-  DEPARTMENT
-}
-
-enum DeliveryStatus {
+enum RequestStatus {
   PENDING
-  IN_TRANSIT
-  DELIVERED
-  FAILED
-  RETURNED
+  APPROVED
+  REJECTED
+  COMPLETED
+}
+
+enum RequestType {
+  ASSET
+  BUFFER_STOCK
+  SERVICE
 }
 
 enum AssignmentStatus {
   ACTIVE
   RETURNED
-  EXPIRED
+  OVERDUE
 }
 
-enum ReturnStatus {
+enum ServiceType {
+  REPAIR
+  MAINTENANCE
+  INSPECTION
+}
+
+enum ServiceStatus {
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETED
+}
+
+enum ConsumptionStatus {
   PENDING
   APPROVED
-  REJECTED
   COMPLETED
-  CANCELLED
 }
 
-enum IntegrationStatus {
-  ACTIVE
-  INACTIVE
-  ERROR
-}
+# Main Entity Types
 
-enum ProductStatus {
-  AVAILABLE
-  OUT_OF_STOCK
-  DISCONTINUED
-}
-
-enum OrderStatus {
-  PENDING
-  CONFIRMED
-  SHIPPED
-  DELIVERED
-  CANCELLED
-  RETURNED
-}
-
-# Core Types
-type Asset {
-  assetId: ID!
-  type: String!
-  model: String!
-  serialNumber: String!
-  barcode: String
-  status: AssetStatus!
-  location: String!
-  purchaseDate: DateTime!
-  warrantyExpiry: DateTime
-  ownerHolderId: String
-  createdAt: DateTime!
-  updatedAt: DateTime!
-  
-  # Relations
-  owner: AssetHolder
-  assignments: [Assignment!]!
-  shipments: [Shipment!]!
-  maintenances: [Maintenance!]!
-  returnRequests: [ReturnRequest!]!
-}
-
-type AssetHolder {
-  holderId: ID!
-  name: String!
+type Employee {
+  employeeId: ID!
+  firstName: String!
+  lastName: String!
   department: String!
-  email: String!
-  location: String!
-  role: HolderRole!
-  createdAt: DateTime!
-  updatedAt: DateTime!
-  
-  # Relations
-  ownedAssets: [Asset!]!
-  assignments: [Assignment!]!
-  shipments: [Shipment!]!
-  returnRequests: [ReturnRequest!]!
-}
-
-type Shipment {
-  shipmentId: ID!
-  assetId: String!
-  holderId: String!
-  shipmentDate: DateTime!
-  deliveryStatus: DeliveryStatus!
-  carrier: String!
-  trackingNumber: String
-  courierApiResponse: JSON
-  createdAt: DateTime!
-  updatedAt: DateTime!
-  
-  # Relations
-  asset: Asset!
-  holder: AssetHolder!
-}
-
-type Assignment {
-  assignmentId: ID!
-  assetId: String!
-  holderId: String!
-  assignedDate: DateTime!
-  returnDate: DateTime
-  status: AssignmentStatus!
-  acknowledgment: Boolean!
-  chainOfCustodyDoc: String
-  createdAt: DateTime!
-  updatedAt: DateTime!
-  
-  # Relations
-  asset: Asset!
-  holder: AssetHolder!
-}
-
-type Maintenance {
-  maintenanceId: ID!
-  assetId: String!
-  maintenanceDate: DateTime!
-  issueReported: String!
-  resolution: String
-  warrantyCovered: Boolean!
-  reminderScheduled: DateTime
-  createdAt: DateTime!
-  updatedAt: DateTime!
-  
-  # Relations
-  asset: Asset!
-}
-
-type ReturnRequest {
-  returnId: ID!
-  holderId: String
-  customerId: String
-  assetId: String
-  orderId: String
-  requestDate: DateTime!
-  returnStatus: ReturnStatus!
-  prepaidLabelGenerated: Boolean!
-  finalStatusConfirmed: Boolean!
-  reason: String
-  createdAt: DateTime!
-  updatedAt: DateTime!
-  
-  # Relations
-  holder: AssetHolder
-  customer: Customer
-  asset: Asset
-  order: Order
-}
-
-type AnalyticsReport {
-  reportId: ID!
-  generatedDate: DateTime!
-  reportType: String!
-  details: JSON!
-  lostOrDamagedAssets: JSON
-  complianceFlag: Boolean!
-  createdAt: DateTime!
-}
-
-type ApiIntegration {
-  integrationId: ID!
-  systemName: String!
-  apiType: String!
-  endpointUrl: String!
-  status: IntegrationStatus!
-  lastSyncTime: DateTime
-  createdAt: DateTime!
-  updatedAt: DateTime!
-}
-
-type Customer {
-  customerId: ID!
-  name: String!
+  position: String!
   email: String!
   phone: String
-  address: String!
-  createdAt: DateTime!
-  updatedAt: DateTime!
+  hireDate: Date!
+  isActive: Boolean!
   
-  # Relations
-  orders: [Order!]!
-  returnRequests: [ReturnRequest!]!
+  # Relationships
+  procurementRequests: [ProcurementRequest!]!
+  approvedRequests: [ProcurementRequest!]!
+  assetAssignments: [AssetAssignment!]!
+  authorizedAssignments: [AssetAssignment!]!
+  serviceRequests: [RepairService!]!
+  bufferConsumptions: [BufferConsumption!]!
+  approvedConsumptions: [BufferConsumption!]!
+  managedBufferStock: [BufferStock!]!
+  equipmentManager: EquipmentManager
+  assignedAssets: [Asset!]!
 }
 
-type Product {
-  productId: ID!
-  name: String!
-  description: String
-  category: String!
-  price: Decimal!
-  status: ProductStatus!
-  stockQuantity: Int!
-  createdAt: DateTime!
-  updatedAt: DateTime!
+type Asset {
+  assetId: ID!
+  assetName: String!
+  assetType: String!
+  model: String
+  serialNumber: String
+  purchasePrice: Float
+  purchaseDate: Date
+  warrantyExpiry: Date
+  status: AssetStatus!
+  specifications: String
+  location: String
   
-  # Relations
-  orderItems: [OrderItem!]!
+  # Relationships
+  supplier: Supplier
+  primaryCustodian: Employee
+  assignments: [AssetAssignment!]!
+  repairServices: [RepairService!]!
 }
 
-type Order {
-  orderId: ID!
-  customerId: String!
-  orderDate: DateTime!
-  orderStatus: OrderStatus!
-  totalAmount: Decimal!
-  createdAt: DateTime!
-  updatedAt: DateTime!
-  
-  # Relations
-  customer: Customer!
-  orderItems: [OrderItem!]!
-  returnRequests: [ReturnRequest!]!
-}
-
-type OrderItem {
-  orderItemId: ID!
-  orderId: String!
-  productId: String!
+type ProcurementRequest {
+  requestId: ID!
+  itemDescription: String!
   quantity: Int!
-  price: Decimal!
-  createdAt: DateTime!
+  specifications: String
+  estimatedCost: Float
+  requestDate: Date!
+  status: RequestStatus!
+  justification: String
+  approvedDate: Date
+  requestType: RequestType!
   
-  # Relations
-  order: Order!
-  product: Product!
+  # Relationships
+  requestedBy: Employee!
+  approvedBy: Employee
+  bufferStock: BufferStock
+  quotations: [Quotation!]!
+}
+
+type Supplier {
+  supplierId: ID!
+  supplierName: String!
+  contactPerson: String
+  email: String
+  phone: String
+  address: String
+  city: String
+  country: String
+  isActive: Boolean!
+  rating: Float
+  
+  # Relationships
+  assets: [Asset!]!
+  quotations: [Quotation!]!
+  lastOrderRates: [LastOrderRate!]!
+  preferredBufferStockItems: [BufferStock!]!
+}
+
+type Quotation {
+  quotationId: ID!
+  itemDescription: String!
+  quotedPrice: Float!
+  quantity: Int!
+  quotationDate: Date!
+  validUntil: Date
+  terms: String
+  specifications: String
+  isSelected: Boolean!
+  
+  # Relationships
+  supplier: Supplier!
+  procurementRequest: ProcurementRequest!
+}
+
+type BufferStock {
+  stockId: ID!
+  itemName: String!
+  itemType: String!
+  quantityAvailable: Int!
+  minimumStockLevel: Int!
+  maximumStockLevel: Int!
+  specifications: String
+  storageLocation: String
+  lastUpdated: DateTime!
+  unitCost: Float
+  autoReorderEnabled: Boolean!
+  
+  # Relationships
+  preferredSupplier: Supplier
+  managedBy: Employee!
+  consumptions: [BufferConsumption!]!
+  procurementRequests: [ProcurementRequest!]!
+  lastOrderRates: [LastOrderRate!]!
+}
+
+type BufferConsumption {
+  consumptionId: ID!
+  quantityConsumed: Int!
+  consumptionDate: Date!
+  purpose: String
+  projectCode: String
+  status: ConsumptionStatus!
+  
+  # Relationships
+  bufferStock: BufferStock!
+  employee: Employee!
+  approvedBy: Employee
+}
+
+type AssetAssignment {
+  assignmentId: ID!
+  assignedDate: Date!
+  returnDate: Date
+  assignmentStatus: AssignmentStatus!
+  conditionAtAssignment: String
+  conditionAtReturn: String
+  notes: String
+  
+  # Relationships
+  asset: Asset!
+  employee: Employee!
+  assignedBy: Employee!
+}
+
+type ServiceVendor {
+  vendorId: ID!
+  vendorName: String!
+  contactPerson: String
+  email: String
+  phone: String
+  address: String
+  specialization: String
+  rating: Float
+  isActive: Boolean!
+  
+  # Relationships
+  repairServices: [RepairService!]!
+}
+
+type RepairService {
+  serviceId: ID!
+  serviceDate: Date!
+  serviceType: ServiceType!
+  description: String!
+  cost: Float
+  status: ServiceStatus!
+  completionDate: Date
+  warrantyPeriod: String
+  
+  # Relationships
+  asset: Asset!
+  vendor: ServiceVendor!
+  requestedBy: Employee!
+}
+
+type LastOrderRate {
+  rateId: ID!
+  itemDescription: String!
+  lastPrice: Float!
+  lastOrderDate: Date!
+  quantityOrdered: Int!
+  specifications: String
+  
+  # Relationships
+  supplier: Supplier!
+  bufferStock: BufferStock
+}
+
+type EquipmentManager {
+  managerId: ID!
+  department: String!
+  assignedDate: Date!
+  isActive: Boolean!
+  
+  # Relationships
+  employee: Employee!
 }
 
 # Input Types for Mutations
+
+input CreateEmployeeInput {
+  firstName: String!
+  lastName: String!
+  department: String!
+  position: String!
+  email: String!
+  phone: String
+  hireDate: Date!
+}
+
+input UpdateEmployeeInput {
+  firstName: String
+  lastName: String
+  department: String
+  position: String
+  email: String
+  phone: String
+  isActive: Boolean
+}
+
 input CreateAssetInput {
-  type: String!
-  model: String!
-  serialNumber: String!
-  barcode: String
-  status: AssetStatus = AVAILABLE
-  location: String!
-  purchaseDate: DateTime!
-  warrantyExpiry: DateTime
-  ownerHolderId: String
+  assetName: String!
+  assetType: String!
+  model: String
+  serialNumber: String
+  purchasePrice: Float
+  purchaseDate: Date
+  warrantyExpiry: Date
+  specifications: String
+  location: String
+  supplierId: ID
+  employeeId: ID
 }
 
 input UpdateAssetInput {
-  type: String
+  assetName: String
+  assetType: String
   model: String
   serialNumber: String
-  barcode: String
   status: AssetStatus
+  specifications: String
   location: String
-  purchaseDate: DateTime
-  warrantyExpiry: DateTime
-  ownerHolderId: String
+  employeeId: ID
 }
 
-input CreateAssetHolderInput {
-  name: String!
-  department: String!
-  email: String!
-  location: String!
-  role: HolderRole = EMPLOYEE
-}
-
-input UpdateAssetHolderInput {
-  name: String
-  department: String
-  email: String
-  location: String
-  role: HolderRole
-}
-
-input CreateShipmentInput {
-  assetId: String!
-  holderId: String!
-  shipmentDate: DateTime!
-  deliveryStatus: DeliveryStatus = IN_TRANSIT
-  carrier: String!
-  trackingNumber: String
-  courierApiResponse: JSON
-}
-
-input CreateAssignmentInput {
-  assetId: String!
-  holderId: String!
-  assignedDate: DateTime!
-  returnDate: DateTime
-  status: AssignmentStatus = ACTIVE
-  acknowledgment: Boolean = false
-  chainOfCustodyDoc: String
-}
-
-input CreateMaintenanceInput {
-  assetId: String!
-  maintenanceDate: DateTime!
-  issueReported: String!
-  resolution: String
-  warrantyCovered: Boolean = false
-  reminderScheduled: DateTime
-}
-
-input CreateReturnRequestInput {
-  holderId: String
-  customerId: String
-  assetId: String
-  orderId: String
-  requestDate: DateTime!
-  returnStatus: ReturnStatus = PENDING
-  prepaidLabelGenerated: Boolean = false
-  finalStatusConfirmed: Boolean = false
-  reason: String
-}
-
-input CreateCustomerInput {
-  name: String!
-  email: String!
-  phone: String
-  address: String!
-}
-
-input CreateProductInput {
-  name: String!
-  description: String
-  category: String!
-  price: Decimal!
-  status: ProductStatus = AVAILABLE
-  stockQuantity: Int = 0
-}
-
-input CreateOrderInput {
-  customerId: String!
-  orderDate: DateTime!
-  orderStatus: OrderStatus = PENDING
-  totalAmount: Decimal!
-  orderItems: [CreateOrderItemInput!]!
-}
-
-input CreateOrderItemInput {
-  productId: String!
+input CreateProcurementRequestInput {
+  itemDescription: String!
   quantity: Int!
-  price: Decimal!
+  specifications: String
+  estimatedCost: Float
+  justification: String
+  requestType: RequestType!
+  bufferStockId: ID
+}
+
+input CreateSupplierInput {
+  supplierName: String!
+  contactPerson: String
+  email: String
+  phone: String
+  address: String
+  city: String
+  country: String
+  rating: Float
+}
+
+input CreateQuotationInput {
+  supplierId: ID!
+  requestId: ID!
+  itemDescription: String!
+  quotedPrice: Float!
+  quantity: Int!
+  validUntil: Date
+  terms: String
+  specifications: String
+}
+
+input CreateBufferStockInput {
+  itemName: String!
+  itemType: String!
+  quantityAvailable: Int!
+  minimumStockLevel: Int!
+  maximumStockLevel: Int!
+  specifications: String
+  storageLocation: String
+  unitCost: Float
+  autoReorderEnabled: Boolean = false
+  preferredSupplierId: ID
+  managedBy: ID!
+}
+
+input CreateAssetAssignmentInput {
+  assetId: ID!
+  employeeId: ID!
+  conditionAtAssignment: String
+  notes: String
+}
+
+input CreateServiceVendorInput {
+  vendorName: String!
+  contactPerson: String
+  email: String
+  phone: String
+  address: String
+  specialization: String
+  rating: Float
+}
+
+input CreateRepairServiceInput {
+  assetId: ID!
+  vendorId: ID!
+  serviceType: ServiceType!
+  description: String!
+  cost: Float
+}
+
+input CreateBufferConsumptionInput {
+  stockId: ID!
+  quantityConsumed: Int!
+  purpose: String
+  projectCode: String
 }
 
 # Filter and Sorting Inputs
+
 input AssetFilter {
-  type: String
+  assetType: String
   status: AssetStatus
+  supplierId: ID
+  employeeId: ID
   location: String
-  ownerHolderId: String
 }
 
-input AssetHolderFilter {
+input EmployeeFilter {
   department: String
-  role: HolderRole
-  location: String
+  position: String
+  isActive: Boolean
 }
 
-input OrderFilter {
-  customerId: String
-  orderStatus: OrderStatus
-  dateFrom: DateTime
-  dateTo: DateTime
+input ProcurementRequestFilter {
+  status: RequestStatus
+  requestType: RequestType
+  requestedBy: ID
+  approvedBy: ID
+}
+
+input BufferStockFilter {
+  itemType: String
+  belowMinimum: Boolean
+  managedBy: ID
 }
 
 enum SortOrder {
@@ -388,120 +412,139 @@ enum SortOrder {
 }
 
 input AssetSort {
-  field: AssetSortField!
-  order: SortOrder = ASC
-}
-
-enum AssetSortField {
-  PURCHASE_DATE
-  CREATED_AT
-  UPDATED_AT
-  TYPE
-  STATUS
+  field: String!
+  order: SortOrder!
 }
 
 # Query Root Type
+
 type Query {
-  # Asset queries
-  asset(assetId: ID!): Asset
-  assets(filter: AssetFilter, sort: AssetSort, limit: Int, offset: Int): [Asset!]!
+  # Employee queries
+  employee(id: ID!): Employee
+  employees(filter: EmployeeFilter, limit: Int, offset: Int): [Employee!]!
   
-  # AssetHolder queries
-  assetHolder(holderId: ID!): AssetHolder
-  assetHolders(filter: AssetHolderFilter, limit: Int, offset: Int): [AssetHolder!]!
+  # Asset queries
+  asset(id: ID!): Asset
+  assets(filter: AssetFilter, sort: AssetSort, limit: Int, offset: Int): [Asset!]!
+  availableAssets(assetType: String): [Asset!]!
+  
+  # Procurement queries
+  procurementRequest(id: ID!): ProcurementRequest
+  procurementRequests(filter: ProcurementRequestFilter, limit: Int, offset: Int): [ProcurementRequest!]!
+  pendingRequests: [ProcurementRequest!]!
+  
+  # Supplier queries
+  supplier(id: ID!): Supplier
+  suppliers(isActive: Boolean, limit: Int, offset: Int): [Supplier!]!
+  
+  # Buffer Stock queries
+  bufferStock(id: ID!): BufferStock
+  bufferStocks(filter: BufferStockFilter, limit: Int, offset: Int): [BufferStock!]!
+  lowStockItems: [BufferStock!]!
+  
+  # Service queries
+  serviceVendor(id: ID!): ServiceVendor
+  serviceVendors(specialization: String, isActive: Boolean): [ServiceVendor!]!
+  repairService(id: ID!): RepairService
+  repairServices(assetId: ID, status: ServiceStatus, limit: Int, offset: Int): [RepairService!]!
   
   # Assignment queries
-  assignment(assignmentId: ID!): Assignment
-  assignments(assetId: String, holderId: String, status: AssignmentStatus): [Assignment!]!
-  
-  # Maintenance queries
-  maintenance(maintenanceId: ID!): Maintenance
-  maintenances(assetId: String, dateFrom: DateTime, dateTo: DateTime): [Maintenance!]!
-  
-  # Shipment queries
-  shipment(shipmentId: ID!): Shipment
-  shipments(assetId: String, holderId: String, status: DeliveryStatus): [Shipment!]!
-  
-  # Return Request queries
-  returnRequest(returnId: ID!): ReturnRequest
-  returnRequests(holderId: String, customerId: String, status: ReturnStatus): [ReturnRequest!]!
-  
-  # Customer queries
-  customer(customerId: ID!): Customer
-  customers(limit: Int, offset: Int): [Customer!]!
-  
-  # Product queries
-  product(productId: ID!): Product
-  products(category: String, status: ProductStatus, limit: Int, offset: Int): [Product!]!
-  
-  # Order queries
-  order(orderId: ID!): Order
-  orders(filter: OrderFilter, limit: Int, offset: Int): [Order!]!
+  assetAssignment(id: ID!): AssetAssignment
+  assetAssignments(employeeId: ID, assetId: ID, status: AssignmentStatus): [AssetAssignment!]!
+  overdueAssignments: [AssetAssignment!]!
   
   # Analytics queries
-  analyticsReport(reportId: ID!): AnalyticsReport
-  analyticsReports(reportType: String, dateFrom: DateTime, dateTo: DateTime): [AnalyticsReport!]!
-  
-  # API Integration queries
-  apiIntegration(integrationId: ID!): ApiIntegration
-  apiIntegrations(status: IntegrationStatus): [ApiIntegration!]!
+  assetUtilizationReport(department: String, dateFrom: Date, dateTo: Date): [AssetUtilizationStat!]!
+  procurementSpendingReport(dateFrom: Date, dateTo: Date): [SpendingStat!]!
+  bufferConsumptionReport(stockId: ID, dateFrom: Date, dateTo: Date): [ConsumptionStat!]!
 }
 
 # Mutation Root Type
+
 type Mutation {
+  # Employee mutations
+  createEmployee(input: CreateEmployeeInput!): Employee!
+  updateEmployee(id: ID!, input: UpdateEmployeeInput!): Employee!
+  deactivateEmployee(id: ID!): Employee!
+  
   # Asset mutations
   createAsset(input: CreateAssetInput!): Asset!
-  updateAsset(assetId: ID!, input: UpdateAssetInput!): Asset!
-  deleteAsset(assetId: ID!): Boolean!
+  updateAsset(id: ID!, input: UpdateAssetInput!): Asset!
+  disposeAsset(id: ID!, reason: String): Asset!
   
-  # AssetHolder mutations
-  createAssetHolder(input: CreateAssetHolderInput!): AssetHolder!
-  updateAssetHolder(holderId: ID!, input: UpdateAssetHolderInput!): AssetHolder!
-  deleteAssetHolder(holderId: ID!): Boolean!
+  # Procurement mutations
+  createProcurementRequest(input: CreateProcurementRequestInput!): ProcurementRequest!
+  approveProcurementRequest(id: ID!, approverId: ID!): ProcurementRequest!
+  rejectProcurementRequest(id: ID!, approverId: ID!, reason: String): ProcurementRequest!
+  completeProcurementRequest(id: ID!): ProcurementRequest!
   
-  # Assignment mutations
-  createAssignment(input: CreateAssignmentInput!): Assignment!
-  updateAssignmentStatus(assignmentId: ID!, status: AssignmentStatus!): Assignment!
-  acknowledgeAssignment(assignmentId: ID!): Assignment!
+  # Supplier mutations
+  createSupplier(input: CreateSupplierInput!): Supplier!
+  updateSupplier(id: ID!, input: CreateSupplierInput!): Supplier!
+  deactivateSupplier(id: ID!): Supplier!
   
-  # Maintenance mutations
-  createMaintenance(input: CreateMaintenanceInput!): Maintenance!
-  updateMaintenanceResolution(maintenanceId: ID!, resolution: String!): Maintenance!
+  # Quotation mutations
+  createQuotation(input: CreateQuotationInput!): Quotation!
+  selectQuotation(id: ID!): Quotation!
   
-  # Shipment mutations
-  createShipment(input: CreateShipmentInput!): Shipment!
-  updateShipmentStatus(shipmentId: ID!, status: DeliveryStatus!): Shipment!
-  updateTrackingNumber(shipmentId: ID!, trackingNumber: String!): Shipment!
+  # Buffer Stock mutations
+  createBufferStock(input: CreateBufferStockInput!): BufferStock!
+  updateBufferStockQuantity(id: ID!, quantity: Int!): BufferStock!
+  recordBufferConsumption(input: CreateBufferConsumptionInput!): BufferConsumption!
+  approveBufferConsumption(id: ID!, approverId: ID!): BufferConsumption!
   
-  # Return Request mutations
-  createReturnRequest(input: CreateReturnRequestInput!): ReturnRequest!
-  updateReturnRequestStatus(returnId: ID!, status: ReturnStatus!): ReturnRequest!
-  generatePrepaidLabel(returnId: ID!): ReturnRequest!
+  # Asset Assignment mutations
+  assignAsset(input: CreateAssetAssignmentInput!): AssetAssignment!
+  returnAsset(assignmentId: ID!, conditionAtReturn: String): AssetAssignment!
   
-  # Customer mutations
-  createCustomer(input: CreateCustomerInput!): Customer!
-  updateCustomer(customerId: ID!, input: CreateCustomerInput!): Customer!
-  deleteCustomer(customerId: ID!): Boolean!
+  # Service mutations
+  createServiceVendor(input: CreateServiceVendorInput!): ServiceVendor!
+  scheduleRepairService(input: CreateRepairServiceInput!): RepairService!
+  completeRepairService(id: ID!, completionDate: Date!, warrantyPeriod: String): RepairService!
   
-  # Product mutations
-  createProduct(input: CreateProductInput!): Product!
-  updateProduct(productId: ID!, input: CreateProductInput!): Product!
-  updateProductStock(productId: ID!, quantity: Int!): Product!
-  deleteProduct(productId: ID!): Boolean!
-  
-  # Order mutations
-  createOrder(input: CreateOrderInput!): Order!
-  updateOrderStatus(orderId: ID!, status: OrderStatus!): Order!
-  cancelOrder(orderId: ID!): Order!
-  
-  # Analytics mutations
-  generateAnalyticsReport(reportType: String!, details: JSON!): AnalyticsReport!
+  # Equipment Manager mutations
+  assignEquipmentManager(employeeId: ID!, department: String!): EquipmentManager!
+  removeEquipmentManager(managerId: ID!): Boolean!
 }
 
-# Subscription Root Type (optional - for real-time updates)
+# Subscription Root Type
+
 type Subscription {
-  assetStatusChanged(assetId: ID): Asset!
-  shipmentStatusChanged(shipmentId: ID): Shipment!
-  orderStatusChanged(orderId: ID): Order!
-  returnRequestStatusChanged(returnId: ID): ReturnRequest!
+  # Real-time notifications
+  lowStockAlert: BufferStock!
+  newProcurementRequest: ProcurementRequest!
+  assetAssignmentUpdate: AssetAssignment!
+  serviceStatusUpdate: RepairService!
+  quotationReceived: Quotation!
+}
+
+# Analytics Types
+
+type AssetUtilizationStat {
+  assetType: String!
+  totalAssets: Int!
+  assignedAssets: Int!
+  utilizationRate: Float!
+  department: String
+}
+
+type SpendingStat {
+  month: String!
+  totalSpending: Float!
+  requestCount: Int!
+  averageRequestValue: Float!
+  topCategory: String!
+}
+
+type ConsumptionStat {
+  itemName: String!
+  totalConsumed: Int!
+  consumptionsByDepartment: [DepartmentConsumption!]!
+  averageMonthlyConsumption: Float!
+}
+
+type DepartmentConsumption {
+  department: String!
+  quantity: Int!
+  percentage: Float!
 }
