@@ -1,24 +1,22 @@
-<<<<<<< HEAD
-import { GraphQLResolveInfo } from "graphql";
-import {
-  PrismaClient,
-=======
-import {
-  PrismaClient,
-  AssetStatus,
-  HolderRole,
->>>>>>> experimental
-  AssignmentStatus,
-  DeliveryStatus,
-  ReturnStatus,
-  OrderStatus,
-<<<<<<< HEAD
-} from "@prisma/client";
-=======
-  ProductStatus,
-} from "@prisma/client";
+import { PrismaClient, AssetStatus, HolderRole, AssignmentStatus, DeliveryStatus, ReturnStatus, OrderStatus, ProductStatus } from "@prisma/client";
 import { withErrorHandling, GraphQLError } from "./utils";
->>>>>>> experimental
+import {
+  CreateAssetSchema,
+  UpdateAssetSchema,
+  CreateAssetHolderSchema,
+  UpdateAssetHolderSchema,
+  CreateAssignmentSchema,
+  CreateMaintenanceSchema,
+  CreateShipmentSchema,
+  CreateReturnRequestSchema,
+  CreateOrderSchema,
+  CreateOrderItemSchema,
+  CreateProductSchema,
+  CreateCustomerSchema,
+  CreateApiIntegrationSchema,
+  CreateAnalyticsReportSchema,
+  validateData
+} from "../lib/validations";
 
 const prisma = new PrismaClient();
 
@@ -435,8 +433,17 @@ const resolvers = {
     // Asset mutations
     createAsset: withErrorHandling(
       async (_: unknown, { input }: { input: any }) => {
+        // Zod validation
+        const validation = validateData(CreateAssetSchema, input);
+        if (!validation.success) {
+          throw new GraphQLError(
+            `Validation failed: ${validation.errors.join(", ")}`,
+            "BAD_USER_INPUT",
+            400
+          );
+        }
         return prisma.asset.create({
-          data: input,
+          data: validation.data,
           include: {
             owner: true,
             assignments: true,
@@ -460,10 +467,18 @@ const resolvers = {
         if (!asset) {
           throw new GraphQLError("Asset not found", "NOT_FOUND", 404);
         }
-
+        // Zod validation
+        const validation = validateData(UpdateAssetSchema, input);
+        if (!validation.success) {
+          throw new GraphQLError(
+            `Validation failed: ${validation.errors.join(", ")}`,
+            "BAD_USER_INPUT",
+            400
+          );
+        }
         return prisma.asset.update({
           where: { assetId },
-          data: input,
+          data: validation.data,
           include: {
             owner: true,
             assignments: true,
@@ -495,8 +510,16 @@ const resolvers = {
     // AssetHolder mutations
     createAssetHolder: withErrorHandling(
       async (_: unknown, { input }: { input: any }) => {
+        const validation = validateData(CreateAssetHolderSchema, input);
+        if (!validation.success) {
+          throw new GraphQLError(
+            `Validation failed: ${validation.errors.join(", ")}`,
+            "BAD_USER_INPUT",
+            400
+          );
+        }
         return prisma.assetHolder.create({
-          data: input,
+          data: validation.data,
           include: {
             ownedAssets: true,
             assignments: true,
@@ -519,10 +542,17 @@ const resolvers = {
         if (!holder) {
           throw new GraphQLError("Asset holder not found", "NOT_FOUND", 404);
         }
-
+        const validation = validateData(UpdateAssetHolderSchema, input);
+        if (!validation.success) {
+          throw new GraphQLError(
+            `Validation failed: ${validation.errors.join(", ")}`,
+            "BAD_USER_INPUT",
+            400
+          );
+        }
         return prisma.assetHolder.update({
           where: { holderId },
-          data: input,
+          data: validation.data,
           include: {
             ownedAssets: true,
             assignments: true,
@@ -553,8 +583,16 @@ const resolvers = {
     // Assignment mutations
     createAssignment: withErrorHandling(
       async (_: unknown, { input }: { input: any }) => {
+        const validation = validateData(CreateAssignmentSchema, input);
+        if (!validation.success) {
+          throw new GraphQLError(
+            `Validation failed: ${validation.errors.join(", ")}`,
+            "BAD_USER_INPUT",
+            400
+          );
+        }
         return prisma.assignment.create({
-          data: input,
+          data: validation.data,
           include: {
             asset: true,
             holder: true,
@@ -563,24 +601,6 @@ const resolvers = {
       }
     ),
 
-<<<<<<< HEAD
-    updateAssignmentStatus: async (
-      _: any,
-      {
-        assignmentId,
-        status,
-      }: { assignmentId: string; status: AssignmentStatus }
-    ) => {
-      return prisma.assignment.update({
-        where: { assignmentId },
-        data: { status: status as AssignmentStatus },
-        include: {
-          asset: true,
-          holder: true,
-        },
-      });
-    },
-=======
     updateAssignmentStatus: withErrorHandling(
       async (
         _: unknown,
@@ -599,7 +619,6 @@ const resolvers = {
         });
       }
     ),
->>>>>>> experimental
 
     acknowledgeAssignment: withErrorHandling(
       async (_: unknown, { assignmentId }: { assignmentId: string }) => {
@@ -625,8 +644,16 @@ const resolvers = {
     // Maintenance mutations
     createMaintenance: withErrorHandling(
       async (_: unknown, { input }: { input: any }) => {
+        const validation = validateData(CreateMaintenanceSchema, input);
+        if (!validation.success) {
+          throw new GraphQLError(
+            `Validation failed: ${validation.errors.join(", ")}`,
+            "BAD_USER_INPUT",
+            400
+          );
+        }
         return prisma.maintenance.create({
-          data: input,
+          data: validation.data,
           include: {
             asset: true,
           },
@@ -667,8 +694,16 @@ const resolvers = {
     // Shipment mutations
     createShipment: withErrorHandling(
       async (_: unknown, { input }: { input: any }) => {
+        const validation = validateData(CreateShipmentSchema, input);
+        if (!validation.success) {
+          throw new GraphQLError(
+            `Validation failed: ${validation.errors.join(", ")}`,
+            "BAD_USER_INPUT",
+            400
+          );
+        }
         return prisma.shipment.create({
-          data: input,
+          data: validation.data,
           include: {
             asset: true,
             holder: true,
@@ -677,21 +712,6 @@ const resolvers = {
       }
     ),
 
-<<<<<<< HEAD
-    updateShipmentStatus: async (
-      _: any,
-      { shipmentId, status }: { shipmentId: string; status: DeliveryStatus }
-    ) => {
-      return prisma.shipment.update({
-        where: { shipmentId },
-        data: { deliveryStatus: status as DeliveryStatus },
-        include: {
-          asset: true,
-          holder: true,
-        },
-      });
-    },
-=======
     updateShipmentStatus: withErrorHandling(
       async (
         _: unknown,
@@ -707,7 +727,6 @@ const resolvers = {
         });
       }
     ),
->>>>>>> experimental
 
     updateTrackingNumber: withErrorHandling(
       async (
@@ -739,35 +758,24 @@ const resolvers = {
     // Return Request mutations
     createReturnRequest: withErrorHandling(
       async (_: unknown, { input }: { input: any }) => {
+        const validation = validateData(CreateReturnRequestSchema, input);
+        if (!validation.success) {
+          throw new GraphQLError(
+            `Validation failed: ${validation.errors.join(", ")}`,
+            "BAD_USER_INPUT",
+            400
+          );
+        }
         return prisma.returnRequest.create({
-          data: input,
+          data: validation.data,
           include: {
-            holder: true,
-            customer: true,
             asset: true,
-            order: true,
+            holder: true,
           },
         });
       }
     ),
 
-<<<<<<< HEAD
-    updateReturnRequestStatus: async (
-      _: any,
-      { returnId, status }: { returnId: string; status: ReturnStatus }
-    ) => {
-      return prisma.returnRequest.update({
-        where: { returnId },
-        data: { returnStatus: status as ReturnStatus },
-        include: {
-          holder: true,
-          customer: true,
-          asset: true,
-          order: true,
-        },
-      });
-    },
-=======
     updateReturnRequestStatus: withErrorHandling(
       async (
         _: unknown,
@@ -785,7 +793,6 @@ const resolvers = {
         });
       }
     ),
->>>>>>> experimental
 
     generatePrepaidLabel: withErrorHandling(
       async (_: unknown, { returnId }: { returnId: string }) => {
@@ -813,8 +820,16 @@ const resolvers = {
     // Customer mutations
     createCustomer: withErrorHandling(
       async (_: unknown, { input }: { input: any }) => {
+        const validation = validateData(CreateCustomerSchema, input);
+        if (!validation.success) {
+          throw new GraphQLError(
+            `Validation failed: ${validation.errors.join(", ")}`,
+            "BAD_USER_INPUT",
+            400
+          );
+        }
         return prisma.customer.create({
-          data: input,
+          data: validation.data,
           include: {
             orders: true,
             returnRequests: true,
@@ -867,8 +882,16 @@ const resolvers = {
     // Product mutations
     createProduct: withErrorHandling(
       async (_: unknown, { input }: { input: any }) => {
+        const validation = validateData(CreateProductSchema, input);
+        if (!validation.success) {
+          throw new GraphQLError(
+            `Validation failed: ${validation.errors.join(", ")}`,
+            "BAD_USER_INPUT",
+            400
+          );
+        }
         return prisma.product.create({
-          data: input,
+          data: validation.data,
           include: {
             orderItems: true,
           },
@@ -942,14 +965,16 @@ const resolvers = {
     // Order mutations
     createOrder: withErrorHandling(
       async (_: unknown, { input }: { input: any }) => {
-        const { orderItems, ...orderData } = input;
+        const validation = validateData(CreateOrderSchema, input);
+        if (!validation.success) {
+          throw new GraphQLError(
+            `Validation failed: ${validation.errors.join(", ")}`,
+            "BAD_USER_INPUT",
+            400
+          );
+        }
         return prisma.order.create({
-          data: {
-            ...orderData,
-            orderItems: {
-              create: orderItems,
-            },
-          },
+          data: validation.data,
           include: {
             customer: true,
             orderItems: true,
@@ -959,22 +984,6 @@ const resolvers = {
       }
     ),
 
-<<<<<<< HEAD
-    updateOrderStatus: async (
-      _: any,
-      { orderId, status }: { orderId: string; status: OrderStatus }
-    ) => {
-      return prisma.order.update({
-        where: { orderId },
-        data: { orderStatus: status as OrderStatus },
-        include: {
-          customer: true,
-          orderItems: true,
-          returnRequests: true,
-        },
-      });
-    },
-=======
     updateOrderStatus: withErrorHandling(
       async (
         _: unknown,
@@ -991,7 +1000,6 @@ const resolvers = {
         });
       }
     ),
->>>>>>> experimental
 
     cancelOrder: withErrorHandling(
       async (_: unknown, { orderId }: { orderId: string }) => {
@@ -1011,6 +1019,60 @@ const resolvers = {
             orderItems: true,
             returnRequests: true,
           },
+        });
+      }
+    ),
+
+    createOrderItem: withErrorHandling(
+      async (_: unknown, { input }: { input: any }) => {
+        const validation = validateData(CreateOrderItemSchema, input);
+        if (!validation.success) {
+          throw new GraphQLError(
+            `Validation failed: ${validation.errors.join(", ")}`,
+            "BAD_USER_INPUT",
+            400
+          );
+        }
+        return prisma.orderItem.create({
+          data: validation.data,
+          include: {
+            order: true,
+            product: true,
+          },
+        });
+      }
+    ),
+
+    createApiIntegration: withErrorHandling(
+      async (_: unknown, { input }: { input: any }) => {
+        const validation = validateData(CreateApiIntegrationSchema, input);
+        if (!validation.success) {
+          throw new GraphQLError(
+            `Validation failed: ${validation.errors.join(", ")}`,
+            "BAD_USER_INPUT",
+            400
+          );
+        }
+        return prisma.apiIntegration.create({
+          data: validation.data,
+        });
+      }
+    ),
+
+    createAnalyticsReport: withErrorHandling(
+      async (_: unknown, { input }: { input: any }) => {
+        const validation = validateData(CreateAnalyticsReportSchema, input);
+        if (!validation.success) {
+          throw new GraphQLError(
+            `Validation failed: ${validation.errors.join(", ")}`,
+            "BAD_USER_INPUT",
+            400
+          );
+        }
+        // Ensure 'details' is always present
+        const data = { ...validation.data, details: validation.data.details ?? {} };
+        return prisma.analyticsReport.create({
+          data,
         });
       }
     ),

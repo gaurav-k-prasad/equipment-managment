@@ -17,6 +17,7 @@ export function PageHeader({
   actionHref,
   actionIcon = Plus,
 }: PageHeaderProps) {
+  const ActionIcon = actionIcon;
   return (
     <div className="flex items-center justify-between">
       <div>
@@ -26,7 +27,7 @@ export function PageHeader({
       {actionLabel && actionHref && (
         <Link href={actionHref}>
           <Button>
-            <actionIcon className="mr-2 h-4 w-4" />
+            <ActionIcon className="mr-2 h-4 w-4" />
             {actionLabel}
           </Button>
         </Link>
